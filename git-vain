@@ -1,3 +1,5 @@
+#!/usr/bin/env ruby
+
 require 'digest/sha1'
 
 MSG = 'dead'
@@ -16,12 +18,12 @@ end
 
 def search
   counter = 0
-  (0..3600).each do |c|
-  [c*1,c*-1].uniq.each do |co|
-    comm_t = @t_committer+co
   (0..3600).each do |a|
   [a*1,a*-1].uniq.each do |ao|
     auth_t = @t_author+ao
+  (0..3600).each do |c|
+  [c*1,c*-1].uniq.each do |co|
+    comm_t = @t_committer+co
   #(0..80  ).each do |space|
     content = [@head, auth_t, @middle, comm_t, @rest].join
     store = "commit #{content.length}\0" + content
@@ -42,6 +44,8 @@ def search
 end
 
 content, sha1 = search()
+
+exit if ARGV.include? "--dry-run"
 
 File.open("/tmp/commit", 'w') {|f| f.write(content) }
 sha2=`git hash-object -t commit /tmp/commit`.strip
