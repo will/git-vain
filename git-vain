@@ -3,9 +3,9 @@
 require 'digest/sha1'
 
 def get_message
-  msg = `git config vein.default`.chomp
+  msg = `git config vain.default`.chomp
   unless msg =~ /\A[a-f0-9]{2,10}\z/
-    abort "ERROR: vein.default not set, or not lowercase hex\nhint: git config --global --add vein.default <hex>"
+    abort "ERROR: vain.default not set, or not lowercase hex\nhint: git config --global vain.default <hex>"
   end
   msg
 end
