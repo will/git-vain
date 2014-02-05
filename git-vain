@@ -21,21 +21,43 @@ def parse_commit
 end
 
 def format_progress(ad, cd, hashes, rewrite="\r")
-  print "∆author: %5d, ∆committor: %5d, khash: %d#{rewrite}" % [ad,cd,hashes/1000]
+  print "∆author: %5d, ∆committer: %5d, khash: %d#{rewrite}" % [ad,cd,hashes/1000]
 end
+
+def spiral_pair(n)
+  # http://2000clicks.com/mathhelp/CountingRationalsSquareSpiral1.aspx
+  s = ((Math.sqrt(n)+1)/2).to_i
+  l = ((n-((2*s)-1)**2)/(2*s)).to_i
+  e = (n-((2*s)-1)**2)-(2*s*l)-s+1
+
+  case l
+  when 0
+    [s,e]
+  when 1
+    [-e,s]
+  when 2
+    [-s,-e]
+  else
+    [e,-s]
+  end
+end
+
+def spiral(max_side)
+  total = (max_side*2+1)**2-1
+  (1..total).lazy.map {|n| spiral_pair(n) }
+end
+
 
 def search(message, parsed_commit)
   puts "searching for: #{message}"
-  @head, @t_author, @middle, @t_committer, @rest = parsed_commit
+  head, orig_auth_t, middle, orig_comm_t, rest = parsed_commit
   counter = 0
 
-  (0..3600).each do |a|
-  [a*1,a*-1].uniq.each do |ad|
-    auth_t = @t_author+ad
-  (0..3600).each do |c|
-  [c*1,c*-1].uniq.each do |cd|
-    comm_t = @t_committer+cd
-    content = [@head, auth_t, @middle, comm_t, @rest].join
+  spiral(3600).each do |(ad,cd)|
+    new_auth_t = orig_auth_t + ad
+    new_comm_t = orig_comm_t + cd
+
+    content = [head, new_auth_t, middle, new_comm_t, rest].join
     store = "commit #{content.length}\0" + content
     sha1 = Digest::SHA1.hexdigest(store)
 
@@ -46,9 +68,6 @@ def search(message, parsed_commit)
 
     counter += 1
     format_progress(ad,cd,counter) if (counter%100000).zero?
-  end
-  end
-  end
   end
 end
 
@@ -69,3 +88,4 @@ else
   puts sha2
   exit 1
 end
+
