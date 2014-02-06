@@ -3,8 +3,14 @@
 require 'digest/sha1'
 
 def get_message
-  msg = `git config vain.default`.chomp
-  unless msg =~ /\A[a-f0-9]{2,10}\z/
+  pattern = /\A[a-f0-9]{2,10}\z/
+  if ARGV.first && ARGV.first =~ pattern
+    msg = ARGV.first
+  else
+    msg = `git config vain.default`.chomp
+  end
+
+  unless msg =~ pattern
     abort "ERROR: vain.default not set, or not lowercase hex\nhint: git config --global vain.default <hex>"
   end
   msg
@@ -31,14 +37,10 @@ def spiral_pair(n)
   e = (n-((2*s)-1)**2)-(2*s*l)-s+1
 
   case l
-  when 0
-    [s,e]
-  when 1
-    [-e,s]
-  when 2
-    [-s,-e]
-  else
-    [e,-s]
+  when 0 then [s,  e]
+  when 1 then [-e, s]
+  when 2 then [-s,-e]
+  else        [e, -s]
   end
 end
 
@@ -73,7 +75,10 @@ end
 
 content, sha1 = search(get_message, parse_commit)
 
-exit if ARGV.include? "--dry-run"
+if ARGV.include? "--dry-run"
+  puts sha1
+  exit
+end
 
 File.open("/tmp/commit", 'w') {|f| f.write(content) }
 sha2=`git hash-object -t commit /tmp/commit`.strip
