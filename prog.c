@@ -36,17 +36,7 @@ bool allHex(char *message) {
   return true;
 }
 
-/*
-typedef struct commit commit;
-struct commit {
-  char *head;
-  int   original_auth_t;
-  char *middle;
-  int   original_com_t;
-  char *rest;
-}; */
-
-char*  getCommit() {
+char* getCommit() {
   FILE *fp;
   char buffer[1024];
   char commitbuff[10*1024];
@@ -62,7 +52,6 @@ char*  getCommit() {
     strcat(commitbuff, buffer);
   }
   pclose(fp);
-
 
   int len = strlen(commitbuff);
   void * commit = malloc(len+1);
@@ -105,6 +94,18 @@ int dateAtOffset(int offset, char *commit) {
   return atoi(sub);
 }
 
+void alter(char *newCommit, int authOffset, int authDate, int commOffset, int commDate) {
+  char datestr[20];
+  sprintf(datestr, "%d", authDate);
+  for(int i = 0; datestr[i] != '\0'; i++) {
+    newCommit[authOffset+i] = datestr[i];
+  }
+  sprintf(datestr, "%d", commDate);
+  for(int i = 0; datestr[i] != '\0'; i++) {
+    newCommit[commOffset+i] = datestr[i];
+  }
+}
+
 int main(int argc, char *argv[]) {
   char message[MAX_MESSAGE];
   for(int i = 0; i < MAX_MESSAGE; i++) { message[i] = '\0'; }
@@ -131,6 +132,12 @@ int main(int argc, char *argv[]) {
   int commDate = dateAtOffset(commOffset, commit);
   printf("a: %d, o: %d, ad: %d, od: %d\n", authOffset, commOffset, authDate, commDate);
   printf("args: %d, message: %s, dry: %d \n", argc, message, dry_run);
+
+
+  char newCommit[strlen(commit)];
+  strcpy(newCommit,commit);
+  alter(newCommit, authOffset, authDate+52, commOffset, commDate-190);
+  printf("===before:\n%s\n===altered:\n%s\n", commit, newCommit);
 
   return 0;
 }
