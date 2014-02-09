@@ -3,6 +3,14 @@
 #include <string.h>
 #include <stdbool.h>
 #include <unistd.h> // for read
+
+//#include <openssl/sha.h>
+#include <CommonCrypto/CommonDigest.h>
+#ifndef SHA_DIGEST_LENGTH
+  #define SHA1 CC_SHA1
+  #define SHA_DIGEST_LENGTH CC_SHA1_DIGEST_LENGTH
+#endif
+
 #define MAX_MESSAGE 17
 
 void setFromGitConfig(char *message) {
@@ -54,15 +62,24 @@ char* getCommit() {
   pclose(fp);
 
   int len = strlen(commitbuff);
-  void * commit = malloc(len+1);
-  strlcpy(commit, commitbuff, len);
+  char header[20];
+  sprintf(header, "commit %d", len);
+  int headlen = strlen(header);
+  len += headlen+1;
+
+  char * commit = malloc(len+2);
+  memcpy(commit, header, headlen);
+  commit[headlen+1] = '\0';
+  memcpy(commit+headlen+1, commitbuff, len);
+  commit[len+1] = '\n';
+  commit[len+2] = '\0';
 
   return commit;
 }
 
 int getTimeOffset(char *search, char *commit) {
   char * ptr = commit;
-  int len = strlen(commit);
+  int len = sizeof(commit);
   int searchlen = strlen(search);
 
   for( ; ptr < commit+len-searchlen; ptr++) {
@@ -125,7 +142,15 @@ int main(int argc, char *argv[]) {
   if (message[0] == '\0') { setFromGitConfig(message); }
   if (!allHex(message)) { printf("message \"%s\" must be all hex", message); exit(1); }
 
-  char * commit = getCommit();
+
+  char * commitWithHeader = getCommit();
+  char * commit = commitWithHeader;
+  //advance commit past header:w
+  for (; *commit != '\0'; commit++) { }
+  commit++;
+  int commitLen = strlen(commitWithHeader) + 1 + strlen(commit);
+
+
   int authOffset = getTimeOffset("\nauthor ",   commit);
   int commOffset = getTimeOffset("\ncommitter ",commit);
   int authDate = dateAtOffset(authOffset, commit);
@@ -138,6 +163,14 @@ int main(int argc, char *argv[]) {
   strcpy(newCommit,commit);
   alter(newCommit, authOffset, authDate+52, commOffset, commDate-190);
   printf("===before:\n%s\n===altered:\n%s\n", commit, newCommit);
+
+
+  unsigned char hash[SHA_DIGEST_LENGTH];
+  SHA1(commitWithHeader, commitLen, hash);
+  for(int i=0; i<SHA_DIGEST_LENGTH; i++) {
+    printf("%02x", hash[i]);
+  }
+  printf("\n");
 
   return 0;
 }
