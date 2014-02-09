@@ -79,7 +79,12 @@ char* getCommit() {
 
 int getTimeOffset(char *search, char *commit) {
   char * ptr = commit;
-  int len = sizeof(commit);
+
+  //advance commit past header
+  for (; *ptr != '\0'; ptr++) { }
+  ptr++;
+
+  int len = strlen(ptr);
   int searchlen = strlen(search);
 
   for( ; ptr < commit+len-searchlen; ptr++) {
@@ -123,6 +128,20 @@ void alter(char *newCommit, int authOffset, int authDate, int commOffset, int co
   }
 }
 
+bool shacmp(char *goal, unsigned char *sha) {
+  int len = strlen(goal);
+  char current[3];
+  for (int i = 0; i < SHA_DIGEST_LENGTH; i++) {
+    //if (i*2 >= len) { return true; }
+    sprintf(current, "%02x", sha[i]);
+    for(int j=0; j<2; j++) {
+      if (goal[i*2 + j] != current[j]) { return false; }
+      if ( i*2 +j+1 == len) { return true; }
+    }
+  }
+}
+
+
 int main(int argc, char *argv[]) {
   char message[MAX_MESSAGE];
   for(int i = 0; i < MAX_MESSAGE; i++) { message[i] = '\0'; }
@@ -143,12 +162,12 @@ int main(int argc, char *argv[]) {
   if (!allHex(message)) { printf("message \"%s\" must be all hex", message); exit(1); }
 
 
-  char * commitWithHeader = getCommit();
-  char * commit = commitWithHeader;
+  char * commit = getCommit();
+  char * commitMsg = commit;
   //advance commit past header:w
-  for (; *commit != '\0'; commit++) { }
-  commit++;
-  int commitLen = strlen(commitWithHeader) + 1 + strlen(commit);
+  for (; *commitMsg != '\0'; commitMsg++) { }
+  commitMsg++;
+  int commitLen = strlen(commit) + 1 + strlen(commitMsg);
 
 
   int authOffset = getTimeOffset("\nauthor ",   commit);
@@ -158,19 +177,29 @@ int main(int argc, char *argv[]) {
   printf("a: %d, o: %d, ad: %d, od: %d\n", authOffset, commOffset, authDate, commDate);
   printf("args: %d, message: %s, dry: %d \n", argc, message, dry_run);
 
-
-  char newCommit[strlen(commit)];
-  strcpy(newCommit,commit);
-  alter(newCommit, authOffset, authDate+52, commOffset, commDate-190);
-  printf("===before:\n%s\n===altered:\n%s\n", commit, newCommit);
-
+  char newCommit[commitLen+1];
+  memcpy(newCommit,commit,commitLen);
+  newCommit[commitLen+1]='\0';
 
   unsigned char hash[SHA_DIGEST_LENGTH];
-  SHA1(commitWithHeader, commitLen, hash);
-  for(int i=0; i<SHA_DIGEST_LENGTH; i++) {
-    printf("%02x", hash[i]);
+
+  for(int i=-3; i < 3; i++) {
+    for(int j=-3; j < 3; j++) {
+
+      alter(newCommit, authOffset, authDate+i, commOffset, commDate-j);
+
+      SHA1(newCommit, commitLen, hash);
+
+      if (shacmp(message, hash)) {
+        printf("da: %d, dc: %d => ",i,j);
+        for(int i=0; i<SHA_DIGEST_LENGTH; i++) {
+          printf("%02x", hash[i]);
+        }
+        printf("\n");
+      }
+
+    }
   }
-  printf("\n");
 
   return 0;
 }
