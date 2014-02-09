@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include <stdbool.h>
 #include <unistd.h> // for read
 
@@ -132,13 +133,33 @@ bool shacmp(char *goal, unsigned char *sha) {
   int len = strlen(goal);
   char current[3];
   for (int i = 0; i < SHA_DIGEST_LENGTH; i++) {
-    //if (i*2 >= len) { return true; }
     sprintf(current, "%02x", sha[i]);
     for(int j=0; j<2; j++) {
       if (goal[i*2 + j] != current[j]) { return false; }
-      if ( i*2 +j+1 == len) { return true; }
+      if ( i*2 +j+1 >= len) { return true; }
     }
   }
+  puts("something went wrong with shacmp");
+  exit(1);
+}
+
+void spiral_pair(int n, int *x, int *y) {
+  // http://2000clicks.com/mathhelp/CountingRationalsSquareSpiral1.aspx
+  int s = (sqrt(n)+1)/2;
+  int lt = n-( ((2*s)-1) * ((2*s)-1) );
+  int l = lt / (2*s);
+  int e = lt - (2*s*l) - s+1;
+
+  switch (l) {
+  case 0:  *x =  s; *y =  e; break;
+  case 1:  *x = -e; *y =  s; break;
+  case 2:  *x = -s; *y = -e; break;
+  default: *x =  e; *y = -s;
+  }
+}
+
+int spiral_max(int max_side) {
+  return  (max_side*2+1) * (max_side*2+1) - 1;
 }
 
 
@@ -183,21 +204,20 @@ int main(int argc, char *argv[]) {
 
   unsigned char hash[SHA_DIGEST_LENGTH];
 
-  for(int i=-3; i < 3; i++) {
-    for(int j=-3; j < 3; j++) {
+  int i, j;
+  int max = spiral_max(3600);
+  for(int n=1; n < max; n++) {
+    spiral_pair(n, &i, &j);
+    alter(newCommit, authOffset, authDate+i, commOffset, commDate-j);
 
-      alter(newCommit, authOffset, authDate+i, commOffset, commDate-j);
+    SHA1(newCommit, commitLen, hash);
 
-      SHA1(newCommit, commitLen, hash);
-
-      if (shacmp(message, hash)) {
-        printf("da: %d, dc: %d => ",i,j);
-        for(int i=0; i<SHA_DIGEST_LENGTH; i++) {
-          printf("%02x", hash[i]);
-        }
-        printf("\n");
+    if (shacmp(message, hash)) {
+      printf("da: %5d, dc: %5d => ",i,j);
+      for(int i=0; i<SHA_DIGEST_LENGTH; i++) {
+        printf("%02x", hash[i]);
       }
-
+      printf("\n");
     }
   }
 
