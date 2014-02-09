@@ -1,0 +1,9 @@
+ok ➤ time ./prog abc123123
+a: 149, o: 213, ad: 1391977599, od: 1391977505
+args: 2, message: abc123123, dry: 0
+count: 10000000
+./prog abc123123  21.46s user 0.02s system 381% cpu 5.628 total
+ok ➤ time ruby git-vain.rb abc123123 --dry-run
+searching for: abc123123
+count: 10000000 ∆committer:  -175, khash: 10000
+ruby git-vain.rb abc123123 --dry-run  56.54s user 1.82s system 99% cpu 58.511 total

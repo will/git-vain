@@ -16,6 +16,12 @@
 
 #define MAX_MESSAGE 17
 
+int headerLen, commitLen, authOffset, commOffset, authDate, commDate;
+char message[MAX_MESSAGE];
+bool dry_run = false;
+bool found = false;
+int count=0;
+
 void setFromGitConfig(char *message) {
   FILE *fp;
   fp = popen("git config vain.default", "r");
@@ -84,8 +90,7 @@ int getTimeOffset(char *search, char *commit) {
   char * ptr = commit;
 
   //advance commit past header
-  for (; *ptr != '\0'; ptr++) { }
-  ptr++;
+  ptr += headerLen;
 
   int len = strlen(ptr);
   int searchlen = strlen(search);
@@ -164,8 +169,42 @@ int spiral_max(int max_side) {
   return  (max_side*2+1) * (max_side*2+1) - 1;
 }
 
-int commitLen, authOffset, commOffset, authDate, commDate;
-char message[MAX_MESSAGE];
+
+
+void ammend_commit(char *newCommit, unsigned char *sha, int da, int dc) {
+  char progHash[SHA_DIGEST_LENGTH*2];
+  for(int i=0; i<SHA_DIGEST_LENGTH; i++) {
+    sprintf(progHash+i*2, "%02x", sha[i]);
+  }
+  printf("da: %d, dc: %d, khash: %d\n%s\n",da,dc, count/1000, progHash);
+
+  if (dry_run) { return; }
+
+  //verify git agrees
+  FILE *fp;
+  fp = fopen("/tmp/commit", "wb");
+  fwrite(newCommit+headerLen, 1, commitLen-headerLen, fp);
+  fclose(fp);
+
+  fp = popen("git hash-object -t commit /tmp/commit", "r");
+  if (fp == NULL) {
+    puts("Failed to run git hash-object");
+    exit(1);
+  }
+  char gitHash[SHA_DIGEST_LENGTH*2+1] = "";
+  while (fgets(gitHash, 80, fp) != NULL) { }
+  gitHash[SHA_DIGEST_LENGTH*2] = '\0';
+  pclose(fp);
+
+  if (strcmp(gitHash,progHash)) {
+    puts("prepared commit hash differs from what git thinks") ;
+    printf("us: %s\ngit: %s\n",gitHash,progHash);
+    exit(1);
+  }
+
+
+
+}
 
 typedef struct {
   int start;
@@ -173,7 +212,6 @@ typedef struct {
   char* commit;
 } searchArgs;
 
-bool found = false;
 void *Search(void* argsptr){
   searchArgs args = *((searchArgs*)(argsptr));
 
@@ -183,23 +221,23 @@ void *Search(void* argsptr){
 
   unsigned char hash[SHA_DIGEST_LENGTH];
 
-  int i, j;
+  int da, dc;
   int max = spiral_max(3600);
   for(int n=args.start; n < max; n=n+args.skip) {
+    if (count++ % 5000 == 0) {
+      printf("khash: %d\r", count/1000);
+    }
     if (found) { return NULL; }
 
-    spiral_pair(n, &i, &j);
-    alter(newCommit, authOffset, authDate+i, commOffset, commDate-j);
+    spiral_pair(n, &da, &dc);
+    alter(newCommit, authOffset, authDate+da, commOffset, commDate+dc);
 
     SHA1(newCommit, commitLen, hash);
 
     if (shacmp(message, hash)) {
-      printf("da: %5d, dc: %5d => ",i,j);
-      for(int i=0; i<SHA_DIGEST_LENGTH; i++) {
-        printf("%02x", hash[i]);
-      }
-      printf("\n");
       found = true;
+      ammend_commit(newCommit, hash, da, dc);
+
     }
   }
   return NULL;
@@ -207,7 +245,6 @@ void *Search(void* argsptr){
 
 int main(int argc, char *argv[]) {
   for(int i = 0; i < MAX_MESSAGE; i++) { message[i] = '\0'; }
-  bool dry_run = false;
   if (argc==2) {
     if (!strncmp(argv[1], "--dry-run", sizeof("--dry-run"))) { dry_run = true; }
     else { strlcpy(message, argv[1], MAX_MESSAGE); }
@@ -226,9 +263,10 @@ int main(int argc, char *argv[]) {
 
   char * commit = getCommit();
   char * commitMsg = commit;
-  //advance commit past header:w
+  //advance commit past header
   for (; *commitMsg != '\0'; commitMsg++) { }
   commitMsg++;
+  headerLen = commitMsg - commit;
   commitLen = strlen(commit) + 1 + strlen(commitMsg);
 
 
@@ -237,23 +275,20 @@ int main(int argc, char *argv[]) {
   authDate = dateAtOffset(authOffset, commit);
   commDate = dateAtOffset(commOffset, commit);
 
-  printf("a: %d, o: %d, ad: %d, od: %d\n", authOffset, commOffset, authDate, commDate);
-  printf("args: %d, message: %s, dry: %d \n", argc, message, dry_run);
-
+ // printf("a: %d, o: %d, ad: %d, od: %d\n", authOffset, commOffset, authDate, commDate);
+ // printf("args: %d, message: %s, dry: %d \n", argc, message, dry_run);
+  printf("searching for: %s\n", message);
 
   pthread_t threads[MAX_THREADS];
   searchArgs thread_args[MAX_THREADS];
   for(int i=0; i<MAX_THREADS; i++) {
     searchArgs args = { i+1,MAX_THREADS, commit};
     thread_args[i] = args;
-    //search(args);
-    int rc = pthread_create(&threads[i], NULL, Search, (void *) &thread_args[i]);
+    pthread_create(&threads[i], NULL, Search, (void *) &thread_args[i]);
   }
   for(int i=0; i<MAX_THREADS; i++) {
     pthread_join(threads[i], NULL);
   }
-
-
 
   return 0;
 }
