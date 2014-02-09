@@ -4,6 +4,8 @@
 #include <math.h>
 #include <stdbool.h>
 #include <unistd.h> // for read
+#include <pthread.h>
+#define MAX_THREADS 8
 
 //#include <openssl/sha.h>
 #include <CommonCrypto/CommonDigest.h>
@@ -162,9 +164,48 @@ int spiral_max(int max_side) {
   return  (max_side*2+1) * (max_side*2+1) - 1;
 }
 
+int commitLen, authOffset, commOffset, authDate, commDate;
+char message[MAX_MESSAGE];
+
+typedef struct {
+  int start;
+  int skip;
+  char* commit;
+} searchArgs;
+
+bool found = false;
+void *Search(void* argsptr){
+  searchArgs args = *((searchArgs*)(argsptr));
+
+  char newCommit[commitLen+1];
+  memcpy(newCommit,args.commit,commitLen);
+  newCommit[commitLen+1]='\0';
+
+  unsigned char hash[SHA_DIGEST_LENGTH];
+
+  int i, j;
+  int max = spiral_max(3600);
+  for(int n=args.start; n < max; n=n+args.skip) {
+    if (found) { return NULL; }
+
+    spiral_pair(n, &i, &j);
+    alter(newCommit, authOffset, authDate+i, commOffset, commDate-j);
+
+    SHA1(newCommit, commitLen, hash);
+
+    if (shacmp(message, hash)) {
+      printf("da: %5d, dc: %5d => ",i,j);
+      for(int i=0; i<SHA_DIGEST_LENGTH; i++) {
+        printf("%02x", hash[i]);
+      }
+      printf("\n");
+      found = true;
+    }
+  }
+  return NULL;
+}
 
 int main(int argc, char *argv[]) {
-  char message[MAX_MESSAGE];
   for(int i = 0; i < MAX_MESSAGE; i++) { message[i] = '\0'; }
   bool dry_run = false;
   if (argc==2) {
@@ -188,38 +229,31 @@ int main(int argc, char *argv[]) {
   //advance commit past header:w
   for (; *commitMsg != '\0'; commitMsg++) { }
   commitMsg++;
-  int commitLen = strlen(commit) + 1 + strlen(commitMsg);
+  commitLen = strlen(commit) + 1 + strlen(commitMsg);
 
 
-  int authOffset = getTimeOffset("\nauthor ",   commit);
-  int commOffset = getTimeOffset("\ncommitter ",commit);
-  int authDate = dateAtOffset(authOffset, commit);
-  int commDate = dateAtOffset(commOffset, commit);
+  authOffset = getTimeOffset("\nauthor ",   commit);
+  commOffset = getTimeOffset("\ncommitter ",commit);
+  authDate = dateAtOffset(authOffset, commit);
+  commDate = dateAtOffset(commOffset, commit);
+
   printf("a: %d, o: %d, ad: %d, od: %d\n", authOffset, commOffset, authDate, commDate);
   printf("args: %d, message: %s, dry: %d \n", argc, message, dry_run);
 
-  char newCommit[commitLen+1];
-  memcpy(newCommit,commit,commitLen);
-  newCommit[commitLen+1]='\0';
 
-  unsigned char hash[SHA_DIGEST_LENGTH];
-
-  int i, j;
-  int max = spiral_max(3600);
-  for(int n=1; n < max; n++) {
-    spiral_pair(n, &i, &j);
-    alter(newCommit, authOffset, authDate+i, commOffset, commDate-j);
-
-    SHA1(newCommit, commitLen, hash);
-
-    if (shacmp(message, hash)) {
-      printf("da: %5d, dc: %5d => ",i,j);
-      for(int i=0; i<SHA_DIGEST_LENGTH; i++) {
-        printf("%02x", hash[i]);
-      }
-      printf("\n");
-    }
+  pthread_t threads[MAX_THREADS];
+  searchArgs thread_args[MAX_THREADS];
+  for(int i=0; i<MAX_THREADS; i++) {
+    searchArgs args = { i+1,MAX_THREADS, commit};
+    thread_args[i] = args;
+    //search(args);
+    int rc = pthread_create(&threads[i], NULL, Search, (void *) &thread_args[i]);
   }
+  for(int i=0; i<MAX_THREADS; i++) {
+    pthread_join(threads[i], NULL);
+  }
+
+
 
   return 0;
 }
