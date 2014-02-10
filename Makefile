@@ -1,4 +1,4 @@
-git-vain:
+git-vain: git-vain.c
 	cc git-vain.c -o git-vain
 
 install: git-vain

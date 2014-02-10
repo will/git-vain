@@ -16,8 +16,9 @@
 
 #define MAX_MESSAGE 17
 
-int headerLen, commitLen, authOffset, commOffset, authDate, commDate;
+int headerLen, commitLen, messageLen, authOffset, commOffset, authDate, commDate;
 char message[MAX_MESSAGE];
+unsigned char hexMessage[MAX_MESSAGE/2];
 bool dry_run = false;
 bool found = false;
 int count=0;
@@ -30,8 +31,8 @@ void setFromGitConfig(char *message) {
     exit(1);
   }
   while (fgets(message, MAX_MESSAGE-1, fp) != NULL) { }
-  int len = strlen(message);
-  if (message[len-1] == '\n') { message[len-1] = '\0'; }
+  messageLen = strlen(message);
+  if (message[messageLen-1] == '\n') { message[messageLen-1] = '\0'; }
   pclose(fp);
 }
 
@@ -136,18 +137,16 @@ void alter(char *newCommit, int authOffset, int authDate, int commOffset, int co
   }
 }
 
-bool shacmp(char *goal, unsigned char *sha) {
-  int len = strlen(goal);
-  char current[3];
-  for (int i = 0; i < SHA_DIGEST_LENGTH; i++) {
-    sprintf(current, "%02x", sha[i]);
-    for(int j=0; j<2; j++) {
-      if (goal[i*2 + j] != current[j]) { return false; }
-      if ( i*2 +j+1 >= len) { return true; }
-    }
+bool shacmp(unsigned char *sha) {
+  int i=0;
+  while(i < messageLen-1) { // only for even pairs
+    if (hexMessage[i/2] != sha[i/2]) { return false; }
+    i += 2;
   }
-  puts("something went wrong with shacmp");
-  exit(1);
+  if (i == messageLen-1) { //given an odd number of hex chars
+    if(hexMessage[i/2] != sha[i/2]>>4) { return false; }
+  }
+  return true;
 }
 
 void spiral_pair(int n, int *x, int *y) {
@@ -168,7 +167,6 @@ void spiral_pair(int n, int *x, int *y) {
 int spiral_max(int max_side) {
   return  (max_side*2+1) * (max_side*2+1) - 1;
 }
-
 
 void ammend_commit(char *newCommit, unsigned char *sha, int da, int dc) {
   char progHash[SHA_DIGEST_LENGTH*2];
@@ -241,7 +239,7 @@ void *Search(void* argsptr){
 
     SHA1(newCommit, commitLen, hash);
 
-    if (shacmp(message, hash)) {
+    if (shacmp(hash)) {
       found = true;
       ammend_commit(newCommit, hash, da, dc);
 
@@ -266,7 +264,16 @@ int main(int argc, char *argv[]) {
 
   if (message[0] == '\0') { setFromGitConfig(message); }
   if (!allHex(message)) { printf("message \"%s\" must be all hex", message); exit(1); }
+  messageLen = strlen(message);
 
+  // translate string hex to bytes
+  char pair[3] = "\0\0\0";
+  for(int i=0; i<messageLen; i+=2) {
+    pair[0] = message[i];
+    pair[1] = message[i+1];
+    unsigned int hx = strtoul(pair, NULL, 16);
+    hexMessage[i/2] = hx;
+  }
 
   char * commit = getCommit();
   char * commitMsg = commit;
