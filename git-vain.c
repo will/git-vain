@@ -7,7 +7,7 @@
 #include <pthread.h>
 #define MAX_THREADS 8
 
-//#include <openssl/sha.h>
+//#include <openssl/sha.h> // needs -lcrypto
 #include <CommonCrypto/CommonDigest.h>
 #ifndef SHA_DIGEST_LENGTH
   #define SHA1 CC_SHA1
@@ -158,10 +158,10 @@ void spiral_pair(int n, int *x, int *y) {
   int e = lt - (2*s*l) - s+1;
 
   switch (l) {
-  case 0:  *x =  s; *y =  e; break;
-  case 1:  *x = -e; *y =  s; break;
-  case 2:  *x = -s; *y = -e; break;
-  default: *x =  e; *y = -s;
+    case 0:  *x =  s; *y =  e; break;
+    case 1:  *x = -e; *y =  s; break;
+    case 2:  *x = -s; *y = -e; break;
+    default: *x =  e; *y = -s;
   }
 }
 
@@ -170,13 +170,12 @@ int spiral_max(int max_side) {
 }
 
 
-
 void ammend_commit(char *newCommit, unsigned char *sha, int da, int dc) {
   char progHash[SHA_DIGEST_LENGTH*2];
   for(int i=0; i<SHA_DIGEST_LENGTH; i++) {
     sprintf(progHash+i*2, "%02x", sha[i]);
   }
-  printf("da: %d, dc: %d, khash: %d\n%s\n",da,dc, count/1000, progHash);
+  printf("∆a: %d, ∆c: %d, khash: %d\n%s\n",da,dc, count/1000, progHash);
 
   if (dry_run) { return; }
 
@@ -187,10 +186,7 @@ void ammend_commit(char *newCommit, unsigned char *sha, int da, int dc) {
   fclose(fp);
 
   fp = popen("git hash-object -t commit /tmp/commit", "r");
-  if (fp == NULL) {
-    puts("Failed to run git hash-object");
-    exit(1);
-  }
+  if (fp == NULL) { puts("Failed to run git hash-object"); exit(1); }
   char gitHash[SHA_DIGEST_LENGTH*2+1] = "";
   while (fgets(gitHash, 80, fp) != NULL) { }
   gitHash[SHA_DIGEST_LENGTH*2] = '\0';
@@ -202,8 +198,19 @@ void ammend_commit(char *newCommit, unsigned char *sha, int da, int dc) {
     exit(1);
   }
 
+  fp = popen("git reset --soft HEAD^", "r");
+  if (fp == NULL) { puts("Failed to run git reset --soft HEAD6"); exit(1); }
+  pclose(fp);
 
+  fp = popen("git hash-object -t commit -w /tmp/commit", "r");
+  if (fp == NULL) { puts("Failed to run git hash-object -w"); exit(1); }
+  pclose(fp);
 
+  char resetCmd[60];
+  sprintf(resetCmd, "git reset --soft %s", progHash);
+  fp = popen(resetCmd, "r");
+  if (fp == NULL) { puts("Failed to run git reset --soft <sha>"); exit(1); }
+  pclose(fp);
 }
 
 typedef struct {
@@ -269,14 +276,13 @@ int main(int argc, char *argv[]) {
   headerLen = commitMsg - commit;
   commitLen = strlen(commit) + 1 + strlen(commitMsg);
 
-
   authOffset = getTimeOffset("\nauthor ",   commit);
   commOffset = getTimeOffset("\ncommitter ",commit);
   authDate = dateAtOffset(authOffset, commit);
   commDate = dateAtOffset(commOffset, commit);
 
- // printf("a: %d, o: %d, ad: %d, od: %d\n", authOffset, commOffset, authDate, commDate);
- // printf("args: %d, message: %s, dry: %d \n", argc, message, dry_run);
+  // printf("a: %d, o: %d, ad: %d, od: %d\n", authOffset, commOffset, authDate, commDate);
+  // printf("args: %d, message: %s, dry: %d \n", argc, message, dry_run);
   printf("searching for: %s\n", message);
 
   pthread_t threads[MAX_THREADS];
