@@ -1,0 +1,22 @@
+$ git log HEAD^..HEAD
+commit 9ca1a5bc4c3b0f44f763166425cd2c17e139e842
+Author: Will Leinweber <will@bitfission.com>
+Date:   Sun Feb 9 17:45:29 2014 -0800
+
+    lawyerup
+
+$ git config vain.default
+dead
+
+$ time git vain
+searching for: dead
+∆a: -19, ∆c: 12, khash: 0
+deada6c8918ee3b7a29b41b770856f6b66e20442
+git vain  0.02s user 0.02s system 90% cpu 0.035 total
+
+$ git log HEAD^..HEAD
+commit deada6c8918ee3b7a29b41b770856f6b66e20442
+Author: Will Leinweber <will@bitfission.com>
+Date:   Sun Feb 9 17:45:10 2014 -0800
+
+    lawyerup
