@@ -16,11 +16,11 @@
 
 #define MAX_MESSAGE 17
 
-int headerLen, commitLen, messageLen, authOffset, commOffset, authDate, commDate;
+int headerLen, commitLen, messageLen, dateLen, authOffset, commOffset, authDate, commDate;
 char message[MAX_MESSAGE];
 unsigned char hexMessage[MAX_MESSAGE/2];
 bool dry_run = false;
-bool found = false;
+volatile bool found = false;
 int count=0;
 
 void setFromGitConfig(char *message) {
@@ -125,16 +125,16 @@ int dateAtOffset(int offset, char *commit) {
   return atoi(sub);
 }
 
+void mytoa(int val, char *dst) {
+  int i = dateLen-1;
+  // maybe use div_t() to make faster
+  for(; val && i ; --i, val /= 10)
+    dst[i] = "0123456789"[val % 10];
+}
+
 void alter(char *newCommit, int authOffset, int authDate, int commOffset, int commDate) {
-  char datestr[20];
-  sprintf(datestr, "%d", authDate);
-  for(int i = 0; datestr[i] != '\0'; i++) {
-    newCommit[authOffset+i] = datestr[i];
-  }
-  sprintf(datestr, "%d", commDate);
-  for(int i = 0; datestr[i] != '\0'; i++) {
-    newCommit[commOffset+i] = datestr[i];
-  }
+  mytoa(authDate, newCommit+authOffset);
+  mytoa(commDate, newCommit+commOffset);
 }
 
 bool shacmp(unsigned char *sha) {
@@ -287,6 +287,9 @@ int main(int argc, char *argv[]) {
   commOffset = getTimeOffset("\ncommitter ",commit);
   authDate = dateAtOffset(authOffset, commit);
   commDate = dateAtOffset(commOffset, commit);
+  char dateStr[20] = "";
+  sprintf(dateStr, "%d", authDate);
+  dateLen = strlen(dateStr);
 
   // printf("a: %d, o: %d, ad: %d, od: %d\n", authOffset, commOffset, authDate, commDate);
   // printf("args: %d, message: %s, dry: %d \n", argc, message, dry_run);
