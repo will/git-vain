@@ -127,9 +127,13 @@ int dateAtOffset(int offset, char *commit) {
 
 void mytoa(int val, char *dst) {
   int i = dateLen-1;
-  // maybe use div_t() to make faster
-  for(; val && i ; --i, val /= 10)
-    dst[i] = "0123456789"[val % 10];
+  int m,v;
+  for(; i ; --i) {
+    v = val / 10;
+    m = val % 10;
+    dst[i] = m+'0';
+    val = v;
+  }
 }
 
 void alter(char *newCommit, int authOffset, int authDate, int commOffset, int commDate) {
