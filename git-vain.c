@@ -10,7 +10,6 @@
 //#include <openssl/sha.h> // needs -lcrypto
 #include <CommonCrypto/CommonDigest.h>
 #ifndef SHA_DIGEST_LENGTH
-  #define SHA1 CC_SHA1
   #define SHA_DIGEST_LENGTH CC_SHA1_DIGEST_LENGTH
 #endif
 
@@ -22,6 +21,7 @@ unsigned char hexMessage[MAX_MESSAGE/2];
 bool dry_run = false;
 volatile bool found = false;
 int count=0;
+CC_SHA1_CTX gctx;
 
 void setFromGitConfig(char *message) {
   FILE *fp;
@@ -232,6 +232,10 @@ void *Search(void* argsptr){
 
   int da, dc;
   int max = spiral_max(3600);
+
+  const void * newCommitPartial = newCommit+authOffset;
+  int commitLenParital = commitLen-authOffset;
+
   for(int n=args.start; n < max; n=n+args.skip) {
     if (count++ % 5000 == 0) {
       printf("khash: %d\r", count/1000);
@@ -241,12 +245,13 @@ void *Search(void* argsptr){
     spiral_pair(n, &da, &dc);
     alter(newCommit, authOffset, authDate+da, commOffset, commDate+dc);
 
-    SHA1(newCommit, commitLen, hash);
+    CC_SHA1_CTX ctx = gctx;
+    CC_SHA1_Update(&ctx, newCommitPartial, commitLenParital);
+    CC_SHA1_Final(hash, &ctx);
 
     if (shacmp(hash)) {
       found = true;
       ammend_commit(newCommit, hash, da, dc);
-
     }
   }
   return NULL;
@@ -294,6 +299,10 @@ int main(int argc, char *argv[]) {
   char dateStr[20] = "";
   sprintf(dateStr, "%d", authDate);
   dateLen = strlen(dateStr);
+
+  // precompute sha up to the changing part
+  CC_SHA1_Init(&gctx);
+  CC_SHA1_Update(&gctx, commit, authOffset);
 
   // printf("a: %d, o: %d, ad: %d, od: %d\n", authOffset, commOffset, authDate, commDate);
   // printf("args: %d, message: %s, dry: %d \n", argc, message, dry_run);
