@@ -213,6 +213,8 @@ void ammend_commit(char *newCommit, unsigned char *sha, int da, int dc) {
   fp = popen(resetCmd, "r");
   if (fp == NULL) { puts("Failed to run git reset --soft <sha>"); exit(1); }
   pclose(fp);
+
+  exit(0); // stop all threads
 }
 
 typedef struct {
@@ -220,6 +222,18 @@ typedef struct {
   int skip;
   char* commit;
 } searchArgs;
+
+void *Display(){
+  int last = count;
+  for(;;) {
+    if (found) { return NULL; }
+    printf("khash: %5d (%0.1f Mh/s)\r", count/1000, ((float)count-last)/1000000);
+    fflush(stdout);
+    last = count;
+    sleep(1);
+  }
+  return NULL;
+}
 
 void *Search(void* argsptr){
   searchArgs args = *((searchArgs*)(argsptr));
@@ -237,10 +251,8 @@ void *Search(void* argsptr){
   int commitLenParital = commitLen-authOffset;
 
   for(int n=args.start; n < max; n=n+args.skip) {
-    if (count++ % 5000 == 0) {
-      printf("khash: %d\r", count/1000);
-    }
-    if (found) { return NULL; }
+    count++;
+    //if (found) { return NULL; } //guarding later in racey successes
 
     spiral_pair(n, &da, &dc);
     alter(newCommit, authOffset, authDate+da, commOffset, commDate+dc);
@@ -250,6 +262,7 @@ void *Search(void* argsptr){
     CC_SHA1_Final(hash, &ctx);
 
     if (shacmp(hash)) {
+      if (found) { return NULL; } //another thread beat us
       found = true;
       ammend_commit(newCommit, hash, da, dc);
     }
@@ -308,13 +321,14 @@ int main(int argc, char *argv[]) {
   // printf("args: %d, message: %s, dry: %d \n", argc, message, dry_run);
   printf("searching for: %s\n", message);
 
-  pthread_t threads[MAX_THREADS];
+  pthread_t threads[MAX_THREADS+1];
   searchArgs thread_args[MAX_THREADS];
   for(int i=0; i<MAX_THREADS; i++) {
     searchArgs args = { i+1,MAX_THREADS, commit};
     thread_args[i] = args;
     pthread_create(&threads[i], NULL, Search, (void *) &thread_args[i]);
   }
+  pthread_create(&threads[MAX_THREADS], NULL, Display, NULL);
   for(int i=0; i<MAX_THREADS; i++) {
     pthread_join(threads[i], NULL);
   }
