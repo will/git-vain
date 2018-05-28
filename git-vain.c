@@ -173,7 +173,7 @@ int spiral_max(int max_side) {
 }
 
 void ammend_commit(char *newCommit, unsigned char *sha, int da, int dc) {
-  char progHash[SHA_DIGEST_LENGTH*2];
+  char progHash[SHA_DIGEST_LENGTH*2+1];
   for(int i=0; i<SHA_DIGEST_LENGTH; i++) {
     sprintf(progHash+i*2, "%02x", sha[i]);
   }
