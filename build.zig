@@ -66,4 +66,14 @@ pub fn build(b: *std.Build) void {
     // running the unit tests.
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_exe_unit_tests.step);
+
+    // zls https://kristoff.it/blog/improving-your-zls-experience/
+    const exe_check = b.addExecutable(.{
+        .name = "git-vain",
+        .root_source_file = b.path("src/main.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    const check = b.step("check", "Check if foo compiles");
+    check.dependOn(&exe_check.step);
 }

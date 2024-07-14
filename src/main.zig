@@ -30,10 +30,8 @@ fn search(start: u64, step: u8, sha: *GitSha, target: Target) !void {
         var buf: [20]u8 = undefined;
         const numAsString = try std.fmt.bufPrint(&buf, "{}", .{i});
         const result = sha.trySha(numAsString);
-        if (target.match(&result)) {
-            if (GlobalFoundFlag.setFound()) {
-                print("{d}: {x}\n", .{ i, result });
-            }
+        if (target.match(&result) and GlobalFoundFlag.setFound()) {
+            print("{d}: {x}\n", .{ i, result });
             break;
         }
     }
