@@ -4,6 +4,7 @@ const Self = @This();
 
 found: bool = false,
 lock: std.Thread.Mutex = .{},
+sem: std.Thread.Semaphore = .{},
 
 // returns true if was able to set from false to true,
 // returns false if it was already found
@@ -14,8 +15,13 @@ pub fn setFound(self: *Self) bool {
         return false;
     }
 
+    self.sem.post();
     self.found = true;
     return true;
+}
+
+pub fn wait(self: *Self) void {
+    self.sem.wait();
 }
 
 test "setFound" {

@@ -15,8 +15,6 @@ const Cpu = switch (@import("builtin").os.tag) {
 };
 
 var GlobalFoundFlag = FoundFlag{};
-// Used to block main until a match is found in one of the threads
-var GlobalSem = std.Thread.Semaphore{};
 
 pub fn main() !void {
     var sha = Sha1.init(.{});
@@ -27,7 +25,7 @@ pub fn main() !void {
         handle.detach();
     }
 
-    GlobalSem.wait();
+    GlobalFoundFlag.wait();
 
     const final = finalSha(&sha, "");
 
@@ -46,7 +44,6 @@ fn search(start: u64, step: u8, sha: *Sha1) !void {
         if (result[0] == 0 and result[1] == 0 and result[2] == 0 and result[3] != 0) {
             if (GlobalFoundFlag.setFound()) {
                 print("{d}: {x}\n", .{ i, result });
-                GlobalSem.post();
             }
             break;
         }
