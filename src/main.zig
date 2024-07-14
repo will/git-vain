@@ -1,12 +1,13 @@
 const std = @import("std");
-const Sha1 = std.crypto.hash.Sha1;
 const print = std.debug.print;
 
+const GitSha = @import("gitSha.zig");
 const Target = @import("target.zig");
 const FoundFlag = @import("foundFlag.zig");
 test "make sure to run imported tests" {
     _ = FoundFlag{};
     _ = Target{};
+    _ = GitSha{};
 }
 
 const Cpu = switch (@import("builtin").os.tag) {
@@ -17,7 +18,7 @@ const Cpu = switch (@import("builtin").os.tag) {
 var GlobalFoundFlag = FoundFlag{};
 
 pub fn main() !void {
-    var sha = Sha1.init(.{});
+    var sha = GitSha.init();
 
     const thread_count = Cpu.getPerfCores();
     for (0..thread_count) |i| {
@@ -27,12 +28,12 @@ pub fn main() !void {
 
     GlobalFoundFlag.wait();
 
-    const final = finalSha(&sha, "");
+    const final = sha.trySha("");
 
     print("All your {s} are belong to {x}.\n", .{ "stuff", final });
 }
 
-fn search(start: u64, step: u8, sha: *Sha1) !void {
+fn search(start: u64, step: u8, sha: *GitSha) !void {
     var i = start;
 
     while (true) {
@@ -40,7 +41,7 @@ fn search(start: u64, step: u8, sha: *Sha1) !void {
 
         var buf: [20]u8 = undefined;
         const numAsString = try std.fmt.bufPrint(&buf, "{}", .{i});
-        const result = finalSha(sha, numAsString);
+        const result = sha.trySha(numAsString);
         if (result[0] == 0 and result[1] == 0 and result[2] == 0 and result[3] != 0) {
             if (GlobalFoundFlag.setFound()) {
                 print("{d}: {x}\n", .{ i, result });
@@ -50,26 +51,4 @@ fn search(start: u64, step: u8, sha: *Sha1) !void {
 
         i += step;
     }
-}
-
-fn finalSha(original: *Sha1, str: []const u8) [20]u8 {
-    var dupe_hash = Sha1{ .s = original.s, .buf = original.buf, .buf_len = original.buf_len };
-    var result: [20]u8 = undefined;
-
-    dupe_hash.update(str);
-    dupe_hash.final(&result);
-
-    return result;
-}
-
-test "finalSha" {
-    var sha = Sha1.init(.{});
-    sha.update("abc");
-
-    const original_state = sha.s;
-    // can call several times without updating original
-    const result1 = finalSha(&sha, "def");
-    const result2 = finalSha(&sha, "def");
-    try std.testing.expectEqual(result1, result2);
-    try std.testing.expectEqual(original_state, sha.s);
 }
