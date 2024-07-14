@@ -13,8 +13,6 @@ pub fn main() !void {
             handle.detach();
         }
     }
-    //print("non threaded:\n", .{});
-    //try search(0, 1, &sha);
 
     GlobalSem.wait();
 
@@ -45,44 +43,9 @@ fn search(start: u64, step: u8, sha: *Sha1) !void {
 }
 
 var GlobalFoundFlag = FoundFlag{};
-
-const FoundFlag = struct {
-    const Self = @This();
-
-    found: bool = false,
-    lock: std.Thread.Mutex = .{},
-
-    // returns true if was able to set from false to true,
-    // returns false if it was already found
-    pub fn setFound(self: *Self) bool {
-        self.lock.lock();
-        defer self.lock.unlock();
-        if (self.found) {
-            return false;
-        }
-
-        self.found = true;
-        return true;
-    }
-
-    test "setFound" {
-        var ff = Self{};
-
-        try std.testing.expect(!ff.found);
-
-        var result = ff.setFound();
-        try std.testing.expect(result);
-        try std.testing.expect(ff.found);
-
-        result = ff.setFound();
-        try std.testing.expect(!result);
-        try std.testing.expect(ff.found);
-    }
-};
-
-test "FoundFlag" {
-    const ff = FoundFlag{};
-    try std.testing.expect(!ff.found);
+const FoundFlag = @import("foundFlag.zig");
+test "run foundFlag tests" {
+    _ = FoundFlag{};
 }
 
 fn finalSha(original: *Sha1, str: []const u8) [20]u8 {
