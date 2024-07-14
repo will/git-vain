@@ -6,12 +6,10 @@ var GlobalSem = std.Thread.Semaphore{};
 pub fn main() !void {
     var sha = Sha1.init(.{});
 
-    {
-        const thread_count = 8;
-        inline for (0..thread_count) |i| {
-            const handle = try std.Thread.spawn(.{}, search, .{ i, thread_count, &sha });
-            handle.detach();
-        }
+    const thread_count = 8;
+    inline for (0..thread_count) |i| {
+        const handle = try std.Thread.spawn(.{}, search, .{ i, thread_count, &sha });
+        handle.detach();
     }
 
     GlobalSem.wait();
