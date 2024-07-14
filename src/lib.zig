@@ -7,8 +7,6 @@ pub const Cpu = switch (@import("builtin").os.tag) {
     else => @import("lib/cpu_other.zig"),
 };
 
-test "make sure to run imported tests" {
-    _ = FoundFlag{};
-    _ = Target{};
-    _ = GitSha{};
+comptime {
+    @import("std").testing.refAllDecls(@This());
 }

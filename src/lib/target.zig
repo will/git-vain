@@ -113,3 +113,16 @@ test "match" {
     t = try Self.init("ef02bab1191da"); // error in 3rd chr
     try std.testing.expectEqual(false, t.match(&result));
 }
+
+fn getDefault() []const u8 {
+    // FIXME: here
+    return "1234";
+}
+
+test "getDefault" {
+    try std.testing.expectEqual("1234", getDefault());
+}
+
+comptime {
+    std.testing.refAllDecls(Self);
+}

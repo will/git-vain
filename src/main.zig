@@ -38,3 +38,7 @@ fn search(start: u64, step: u8, sha: *GitSha, target: Target) !void {
         }
     }
 }
+
+comptime {
+    std.testing.refAllDecls(@This());
+}
