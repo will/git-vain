@@ -3,13 +3,18 @@ const Sha1 = std.crypto.hash.Sha1;
 const print = std.debug.print;
 
 const Target = @import("target.zig");
-test "target" {
+const FoundFlag = @import("foundFlag.zig");
+test "make sure to run imported tests" {
+    _ = FoundFlag{};
     _ = Target{};
 }
 
-// TODO: fix for linux maybe
-const Cpu = @import("cpu.zig");
+const Cpu = switch (@import("builtin").os.tag) {
+    .macos => @import("cpu_macos.zig"),
+    else => @import("cpu_other.zig"),
+};
 
+var GlobalFoundFlag = FoundFlag{};
 // Used to block main until a match is found in one of the threads
 var GlobalSem = std.Thread.Semaphore{};
 
@@ -26,7 +31,7 @@ pub fn main() !void {
 
     const final = finalSha(&sha, "");
 
-    print("All your {s} are belong to {x}.\n", .{ "codebase", final });
+    print("All your {s} are belong to {x}.\n", .{ "stuff", final });
 }
 
 fn search(start: u64, step: u8, sha: *Sha1) !void {
@@ -48,12 +53,6 @@ fn search(start: u64, step: u8, sha: *Sha1) !void {
 
         i += step;
     }
-}
-
-var GlobalFoundFlag = FoundFlag{};
-const FoundFlag = @import("foundFlag.zig");
-test "run foundFlag tests" {
-    _ = FoundFlag{};
 }
 
 fn finalSha(original: *Sha1, str: []const u8) [20]u8 {
