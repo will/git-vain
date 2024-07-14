@@ -1,37 +1,24 @@
 const std = @import("std");
 const print = std.debug.print;
 
-const GitSha = @import("gitSha.zig");
-const Target = @import("target.zig");
-const FoundFlag = @import("foundFlag.zig");
-test "make sure to run imported tests" {
-    _ = FoundFlag{};
-    _ = Target{};
-    _ = GitSha{};
-}
+const lib = @import("lib.zig");
+const GitSha = lib.GitSha;
+const Target = lib.Target;
 
-const Cpu = switch (@import("builtin").os.tag) {
-    .macos => @import("cpu_macos.zig"),
-    else => @import("cpu_other.zig"),
-};
-
-var GlobalFoundFlag = FoundFlag{};
+var GlobalFoundFlag = lib.FoundFlag{};
 
 pub fn main() !void {
-    var sha = GitSha.init();
-    const target = try Target.init("cafe");
+    const target = try lib.Target.init("cafe");
 
-    const thread_count = Cpu.getPerfCores();
+    const thread_count = lib.Cpu.getPerfCores();
+    var sha = GitSha.init();
     for (0..thread_count) |i| {
         const handle = try std.Thread.spawn(.{}, search, .{ i, thread_count, &sha, target });
         handle.detach();
     }
 
     GlobalFoundFlag.wait();
-
-    const final = sha.trySha("");
-
-    print("All your {s} are belong to {x}.\n", .{ "stuff", final });
+    print("done\n", .{}); // TODO: too lazy to figure out how to flush stderr
 }
 
 fn search(start: u64, step: u8, sha: *GitSha, target: Target) !void {
