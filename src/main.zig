@@ -2,12 +2,22 @@ const std = @import("std");
 const Sha1 = std.crypto.hash.Sha1;
 const print = std.debug.print;
 
+const Target = @import("target.zig");
+test "target" {
+    _ = Target{};
+}
+
+// TODO: fix for linux maybe
+const Cpu = @import("cpu.zig");
+
+// Used to block main until a match is found in one of the threads
 var GlobalSem = std.Thread.Semaphore{};
+
 pub fn main() !void {
     var sha = Sha1.init(.{});
 
-    const thread_count = 8;
-    inline for (0..thread_count) |i| {
+    const thread_count = Cpu.getPerfCores();
+    for (0..thread_count) |i| {
         const handle = try std.Thread.spawn(.{}, search, .{ i, thread_count, &sha });
         handle.detach();
     }
@@ -28,7 +38,7 @@ fn search(start: u64, step: u8, sha: *Sha1) !void {
         var buf: [20]u8 = undefined;
         const numAsString = try std.fmt.bufPrint(&buf, "{}", .{i});
         const result = finalSha(sha, numAsString);
-        if (result[0] == 0 and result[1] == 0 and result[2] == 0 and result[3] == 0) {
+        if (result[0] == 0 and result[1] == 0 and result[2] == 0 and result[3] != 0) {
             if (GlobalFoundFlag.setFound()) {
                 print("{d}: {x}\n", .{ i, result });
                 GlobalSem.post();
