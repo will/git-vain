@@ -7,8 +7,7 @@ buf_len: u8 = 0,
 half: bool = false,
 
 const TargetError = error{
-    // not 0-9 or a-z
-    NotHexChr,
+    NotHexChr, // not 0-9 or a-z
     NoInput,
     TooLong,
 };
