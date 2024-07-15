@@ -8,7 +8,7 @@ const Target = lib.Target;
 var GlobalFoundFlag = lib.FoundFlag{};
 
 pub fn main() !void {
-    const target = try lib.Target.init("cafe");
+    const target = try lib.Target.init();
 
     const thread_count = lib.Cpu.getPerfCores();
     var sha = GitSha.init();
