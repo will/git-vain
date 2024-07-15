@@ -1,5 +1,4 @@
 const std = @import("std");
-const print = std.debug.print;
 
 const lib = @import("lib.zig");
 const GitSha = lib.GitSha;
@@ -18,7 +17,7 @@ pub fn main() !void {
     }
 
     GlobalFoundFlag.wait();
-    print("done\n", .{}); // TODO: too lazy to figure out how to flush stderr
+    std.debug.print("done\n", .{}); // TODO: too lazy to figure out how to flush stderr
 }
 
 fn search(start: u64, step: u8, sha: *GitSha, target: Target) !void {
@@ -31,7 +30,7 @@ fn search(start: u64, step: u8, sha: *GitSha, target: Target) !void {
         const numAsString = try std.fmt.bufPrint(&buf, "{}", .{i});
         const result = sha.trySha(numAsString);
         if (target.match(&result) and GlobalFoundFlag.setFound()) {
-            print("{d}: {x}\n", .{ i, result });
+            std.debug.print("{d}: {x}\n", .{ i, result });
             break;
         }
     }
