@@ -14,6 +14,9 @@ const TargetError = error{
 };
 
 pub fn init() TargetError!Self {
+    var args = std.process.args(); // wont work on windows or wasi
+    _ = args.skip(); // program name
+    if (args.next()) |arg| return _init(arg);
     return _init(&getDefault());
 }
 
