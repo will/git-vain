@@ -14,8 +14,13 @@ const TargetError = error{
 
 pub fn init() TargetError!Self {
     var args = std.process.args(); // wont work on windows or wasi
-    _ = args.skip(); // program name
-    if (args.next()) |arg| return _init(arg);
+    const progname = args.next() orelse "git-vain";
+
+    if (args.next()) |arg| {
+        const isTest = (progname.len >= 4 and std.mem.eql(u8, progname[progname.len - 4 ..], "test"));
+        if (!isTest) return _init(arg);
+    }
+
     return _init(&getDefault());
 }
 
