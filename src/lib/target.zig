@@ -1,4 +1,5 @@
 const std = @import("std");
+const Allocator = std.mem.Allocator;
 
 const Self = @This();
 const MaxSize = 16; // NOTE: just picking this, real hard limit would probably be 40?
@@ -21,7 +22,15 @@ pub fn init() TargetError!Self {
         if (!isTest) return _init(arg);
     }
 
-    return _init(&getDefault());
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
+    const allocator = arena.allocator();
+
+    const dft = getDefault2(allocator);
+    // _ = allocator;
+    // const dft = getDefault3();
+    // std.debug.print("\ndft: {x}\n", .{dft});
+    return _init(dft);
 }
 
 pub fn _init(str: []const u8) TargetError!Self {
@@ -34,7 +43,7 @@ pub fn _init(str: []const u8) TargetError!Self {
 
     var itr = std.mem.window(u8, str, 2, 2);
     while (itr.next()) |ch| : (i += 1) {
-        if (ch[0] == 0) break; // might have a 0 from getDefault
+        // if (ch[0] == 0) break; // might have a 0 from getDefault
         var val = try hexChrToInt(ch[0]);
         val <<= 4;
 
@@ -170,6 +179,81 @@ fn getDefault() [MaxSize]u8 {
     } else |err| {
         std.debug.print("error getting git config vain.default: {!}\n", .{err});
         return .{ '1', '2', '3', '4' } ++ .{0} ** (MaxSize - 4);
+    }
+}
+
+fn getGitDefault2(allocator: Allocator) ![]const u8 {
+    const argv = [_][]const u8{ "git", "config", "vain.default" };
+
+    const Child = std.process.Child;
+    const ArrayList = std.ArrayList;
+
+    var child = Child.init(&argv, allocator);
+    child.stdout_behavior = .Pipe;
+    child.stderr_behavior = .Pipe;
+    var stdout = ArrayList(u8).init(allocator);
+    var stderr = ArrayList(u8).init(allocator);
+    defer {
+        stdout.deinit();
+        stderr.deinit();
+    }
+
+    try child.spawn();
+    try child.collectOutput(&stdout, &stderr, 1024);
+    const term = try child.wait();
+
+    if (term.Exited == 0) {
+        const rawRet = stdout.items[0 .. stdout.items.len - 1];
+        const ret = try allocator.alloc(u8, rawRet.len);
+        std.mem.copyForwards(u8, ret, rawRet);
+        return ret;
+    } else return error.NonZeroExitGit;
+}
+
+fn getDefault2(allocator: Allocator) []const u8 {
+    if (getGitDefault2(allocator)) |git| {
+        return git;
+    } else |err| {
+        std.debug.print("error getting git config vain.default: {!}\n", .{err});
+        return "1234";
+    }
+}
+
+fn getGitDefault3() ![]const u8 {
+    const argv = [_][]const u8{ "git", "config", "vain.default" };
+
+    const Child = std.process.Child;
+    const ArrayList = std.ArrayList;
+
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
+    const allocator = arena.allocator();
+
+    var child = Child.init(&argv, allocator);
+    child.stdout_behavior = .Pipe;
+    child.stderr_behavior = .Pipe;
+    var stdout = ArrayList(u8).init(allocator);
+    var stderr = ArrayList(u8).init(allocator);
+    defer {
+        stdout.deinit();
+        stderr.deinit();
+    }
+
+    try child.spawn();
+    try child.collectOutput(&stdout, &stderr, 1024);
+    const term = try child.wait();
+
+    if (term.Exited == 0) {
+        return std.mem.toBytes(stdout.items[0 .. stdout.items.len - 1])[0..];
+    } else return error.NonZeroExitGit;
+}
+
+fn getDefault3() []const u8 {
+    if (getGitDefault3()) |git| {
+        return git;
+    } else |err| {
+        std.debug.print("error getting git config vain.default: {!}\n", .{err});
+        return "1234";
     }
 }
 
