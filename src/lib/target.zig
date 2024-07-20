@@ -1,4 +1,5 @@
 const std = @import("std");
+const Git = @import("git.zig");
 const Allocator = std.mem.Allocator;
 
 const Self = @This();
@@ -25,8 +26,10 @@ pub fn init() TargetError!Self {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
     const allocator = arena.allocator();
+    var git = try Git.init(allocator);
 
-    const dft = getDefault2(allocator);
+    const dft = git.getDefault();
+    // const dft = getDefault2(allocator);
     // _ = allocator;
     // const dft = getDefault3();
     // std.debug.print("\ndft: {x}\n", .{dft});
@@ -139,127 +142,6 @@ test "match" {
     try std.testing.expectEqual(true, t.match(&result));
     t = try Self._init("ef02bab1191da"); // error in 3rd chr
     try std.testing.expectEqual(false, t.match(&result));
-}
-
-fn getGitDefault() ![MaxSize]u8 {
-    const argv = [_][]const u8{ "git", "config", "vain.default" };
-
-    const Child = std.process.Child;
-    const ArrayList = std.ArrayList;
-
-    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    defer arena.deinit();
-    const allocator = arena.allocator();
-
-    var child = Child.init(&argv, allocator);
-    child.stdout_behavior = .Pipe;
-    child.stderr_behavior = .Pipe;
-    var stdout = ArrayList(u8).init(allocator);
-    var stderr = ArrayList(u8).init(allocator);
-    defer {
-        stdout.deinit();
-        stderr.deinit();
-    }
-
-    try child.spawn();
-    try child.collectOutput(&stdout, &stderr, 1024);
-    const term = try child.wait();
-
-    if (term.Exited == 0) {
-        var ret: [MaxSize]u8 = .{0} ** MaxSize;
-        std.mem.copyForwards(u8, &ret, stdout.items);
-        if (ret[stdout.items.len - 1] == '\n') ret[stdout.items.len - 1] = 0;
-        return ret;
-    } else return error.NonZeroExitGit;
-}
-
-fn getDefault() [MaxSize]u8 {
-    if (getGitDefault()) |git| {
-        return git;
-    } else |err| {
-        std.debug.print("error getting git config vain.default: {!}\n", .{err});
-        return .{ '1', '2', '3', '4' } ++ .{0} ** (MaxSize - 4);
-    }
-}
-
-fn getGitDefault2(allocator: Allocator) ![]const u8 {
-    const argv = [_][]const u8{ "git", "config", "vain.default" };
-
-    const Child = std.process.Child;
-    const ArrayList = std.ArrayList;
-
-    var child = Child.init(&argv, allocator);
-    child.stdout_behavior = .Pipe;
-    child.stderr_behavior = .Pipe;
-    var stdout = ArrayList(u8).init(allocator);
-    var stderr = ArrayList(u8).init(allocator);
-    defer {
-        stdout.deinit();
-        stderr.deinit();
-    }
-
-    try child.spawn();
-    try child.collectOutput(&stdout, &stderr, 1024);
-    const term = try child.wait();
-
-    if (term.Exited == 0) {
-        const rawRet = stdout.items[0 .. stdout.items.len - 1];
-        const ret = try allocator.alloc(u8, rawRet.len);
-        std.mem.copyForwards(u8, ret, rawRet);
-        return ret;
-    } else return error.NonZeroExitGit;
-}
-
-fn getDefault2(allocator: Allocator) []const u8 {
-    if (getGitDefault2(allocator)) |git| {
-        return git;
-    } else |err| {
-        std.debug.print("error getting git config vain.default: {!}\n", .{err});
-        return "1234";
-    }
-}
-
-fn getGitDefault3() ![]const u8 {
-    const argv = [_][]const u8{ "git", "config", "vain.default" };
-
-    const Child = std.process.Child;
-    const ArrayList = std.ArrayList;
-
-    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    defer arena.deinit();
-    const allocator = arena.allocator();
-
-    var child = Child.init(&argv, allocator);
-    child.stdout_behavior = .Pipe;
-    child.stderr_behavior = .Pipe;
-    var stdout = ArrayList(u8).init(allocator);
-    var stderr = ArrayList(u8).init(allocator);
-    defer {
-        stdout.deinit();
-        stderr.deinit();
-    }
-
-    try child.spawn();
-    try child.collectOutput(&stdout, &stderr, 1024);
-    const term = try child.wait();
-
-    if (term.Exited == 0) {
-        return std.mem.toBytes(stdout.items[0 .. stdout.items.len - 1])[0..];
-    } else return error.NonZeroExitGit;
-}
-
-fn getDefault3() []const u8 {
-    if (getGitDefault3()) |git| {
-        return git;
-    } else |err| {
-        std.debug.print("error getting git config vain.default: {!}\n", .{err});
-        return "1234";
-    }
-}
-
-test "getDefault" {
-    const d = getDefault();
-    try std.testing.expect(d[0] != 0);
 }
 
 comptime {
