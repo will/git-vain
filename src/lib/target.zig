@@ -14,7 +14,8 @@ const TargetError = error{
     TooLong,
 };
 
-pub fn init() TargetError!Self {
+// pub fn init() Git.GitError|TargetError!Self {
+pub fn init() !Self {
     var args = std.process.args(); // wont work on windows or wasi
     const progname = args.next() orelse "git-vain";
 
@@ -23,10 +24,10 @@ pub fn init() TargetError!Self {
         if (!isTest) return _init(arg);
     }
 
-    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    defer arena.deinit();
-    const allocator = arena.allocator();
-    var git = try Git.init(allocator);
+    // var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    // defer arena.deinit();
+    // const allocator = arena.allocator();
+    var git = try Git.init();
 
     const dft = git.getDefault();
     // const dft = getDefault2(allocator);
