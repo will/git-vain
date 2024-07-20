@@ -31,8 +31,8 @@
         # The package won't be usable inside nix.
         zigDisableWrap = true;
       } // optionalAttrs (!pathExists ./build.zig.zon) {
-        pname = "my-zig-project";
-        version = "0.0.0";
+        pname = "git-vain";
+        version = "2.0.0";
       }));
 
       # nix build .
