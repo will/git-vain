@@ -21,3 +21,4 @@ zig-out/
 git-vain
 prog
 *.dSYM
+.ccls-cache

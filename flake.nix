@@ -21,8 +21,8 @@
       packages.target = genAttrs allTargetTriples (target: env.packageForTarget target ({
         src = cleanSource ./.;
 
-        nativeBuildInputs = with env.pkgs; [ libgit2 ];
-        buildInputs = with env.pkgsForTarget target; [ pkg-config ];
+        nativeBuildInputs = with env.pkgs; [ pkg-config ];
+        buildInputs = with env.pkgsForTarget target; [ libgit2 ];
 
         # Smaller binaries and avoids shipping glibc.
         zigPreferMusl = true;
@@ -80,7 +80,8 @@
 
       # nix develop
       devShells.default = env.mkShell {
-        nativeBuildInputs = [zlsPkg  env.pkgs.libgit2 ];
+        nativeBuildInputs = [ zlsPkg ];
+        buildInputs = [ env.pkgs.libgit2 ];
         # https://github.com/ziglang/zig/issues/18998
         shellHook = ''
           unset NIX_CFLAGS_COMPILE

@@ -60,6 +60,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    exe_unit_tests.linkSystemLibrary("libgit2");
 
     const run_exe_unit_tests = b.addRunArtifact(exe_unit_tests);
 
@@ -76,6 +77,8 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    exe_check.linkSystemLibrary("libgit2");
+
     const check = b.step("check", "Check if foo compiles");
     check.dependOn(&exe_check.step);
 }

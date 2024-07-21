@@ -3,17 +3,11 @@ const std = @import("std");
 const lib = @import("lib.zig");
 const GitSha = lib.GitSha;
 const Target = lib.Target;
-
 const Git = lib.Git;
 
 var GlobalFoundFlag = lib.FoundFlag{};
 
 pub fn main() !void {
-    // https://github.com/0xhtml/ignore-convert/blob/master/src/git.zig
-    // const git = try Git.init();
-    // const ok = try git.ok();
-    // std.debug.print("ok: {s}\n", .{ok});
-
     const target = try lib.Target.init();
 
     const thread_count = lib.Cpu.getPerfCores();
