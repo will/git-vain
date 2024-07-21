@@ -27,7 +27,7 @@ pub fn getDefault(self: *Self) []const u8 {
         return gvd;
     } else |err| switch (err) {
         error.NotFound => {}, // expected
-        error.GenericError => std.debug.print("error: {s}\n", .{libgit.getDetailedLastError().?.message()}),
+        error.GenericError => libgit.printLastError(),
         inline else => std.debug.print("error getting git config vain.default: {!}\n", .{err}),
     }
     return "1234";

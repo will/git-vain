@@ -6,6 +6,10 @@ pub const libgit2 = @cImport({
     @cInclude("git2/sys/config.h");
 });
 
+pub fn printLastError() void {
+    std.debug.print("libgit2 error: {s}\n", .{getDetailedLastError().?.message()});
+}
+
 pub const DetailedError = extern struct {
     raw_message: [*:0]const u8,
     class: c_int,
