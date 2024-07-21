@@ -6,6 +6,21 @@ pub const libgit2 = @cImport({
     @cInclude("git2/sys/config.h");
 });
 
+pub const Object = opaque {};
+
+pub const Oid = extern struct {
+    id: [20]u8,
+    pub const hex_buffer_size = libgit2.GIT_OID_HEXSZ;
+
+    pub fn formatHex(self: *const @This(), buf: []u8) ![]const u8 {
+        if (buf.len < hex_buffer_size) return error.BufferTooShort;
+
+        try wrapCall("git_oid_fmt", .{ buf.ptr, @as(*const libgit2.git_oid, @ptrCast(self)) });
+
+        return buf[0..hex_buffer_size];
+    }
+};
+
 pub fn printLastError() void {
     std.debug.print("libgit2 error: {s}\n", .{getDetailedLastError().?.message()});
 }
