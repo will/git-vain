@@ -9,9 +9,9 @@ var GlobalFoundFlag = lib.FoundFlag{};
 
 pub fn main() !void {
     const target = try lib.Target.init();
+    const sha = GitSha.init();
 
     const thread_count = lib.Cpu.getPerfCores();
-    var sha = GitSha.init();
     for (0..thread_count) |i| {
         const handle = try std.Thread.spawn(.{}, search, .{ i, thread_count, &sha, target });
         handle.detach();
@@ -21,7 +21,7 @@ pub fn main() !void {
     std.debug.print("done\n", .{}); // TODO: too lazy to figure out how to flush stderr
 }
 
-fn search(start: u64, step: u8, sha: *GitSha, target: Target) !void {
+fn search(start: u64, step: u8, sha: *const GitSha, target: Target) !void {
     var i = start;
 
     while (true) : (i += step) {

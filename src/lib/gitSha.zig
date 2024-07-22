@@ -11,7 +11,7 @@ pub fn init() Self {
     };
 }
 
-pub fn trySha(self: *Self, str: []const u8) [20]u8 {
+pub fn trySha(self: *const Self, str: []const u8) [20]u8 {
     const original = self.hash;
     var dupe_hash = Sha1{ .s = original.s, .buf = original.buf, .buf_len = original.buf_len };
     var result: [20]u8 = undefined;

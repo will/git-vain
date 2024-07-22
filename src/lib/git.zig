@@ -68,8 +68,6 @@ pub fn getHead(self: *const Self) !void {
     defer hand.deinit();
     var repo = try hand.repositoryOpen(".");
     defer repo.deinit();
-    const obj = try repo.head();
-    defer obj.deinit();
     //const ac = try obj.annotatedCommitCreate(repo);
     //defer ac.deinit();
 
@@ -79,7 +77,6 @@ pub fn getHead(self: *const Self) !void {
 
     const header = commit.getHeaderRaw() orelse unreachable;
     const message = commit.getMessageRaw() orelse unreachable;
-    std.debug.print("len: {d}\n", .{header.len + message.len});
 
     const Sha = @import("gitSha.zig");
     var sha = Sha.init();
