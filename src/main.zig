@@ -8,8 +8,14 @@ const Git = lib.Git;
 var GlobalFoundFlag = lib.FoundFlag{};
 
 pub fn main() !void {
-    const target = try lib.Target.init();
-    const sha = GitSha.init();
+    var git = try Git.init();
+    const target = try Target.init(&git);
+    const sha = try GitSha.init(&git);
+
+    if (target.match(&sha.startingSha)) {
+        std.debug.print("already at target\n", .{});
+        std.process.exit(0);
+    }
 
     const thread_count = lib.Cpu.getPerfCores();
     for (0..thread_count) |i| {

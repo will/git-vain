@@ -15,7 +15,7 @@ const TargetError = error{
 };
 
 // pub fn init() Git.GitError|TargetError!Self {
-pub fn init() !Self {
+pub fn init(git: *Git) !Self {
     var args = std.process.args(); // wont work on windows or wasi
     const progname = args.next() orelse "git-vain";
 
@@ -24,16 +24,7 @@ pub fn init() !Self {
         if (!isTest) return _init(arg);
     }
 
-    // var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    // defer arena.deinit();
-    // const allocator = arena.allocator();
-    var git = try Git.init();
-
     const dft = git.getDefault();
-    // const dft = getDefault2(allocator);
-    // _ = allocator;
-    // const dft = getDefault3();
-    // std.debug.print("\ndft: {x}\n", .{dft});
     return _init(dft);
 }
 
@@ -72,7 +63,8 @@ fn hexChrToInt(chr: u8) TargetError!u8 {
 }
 
 test "init" {
-    const t = try Self.init(); // default value
+    var git = try Git.init();
+    const t = try Self.init(&git); // default value
     try std.testing.expectEqual(2, t.buf_len);
     try std.testing.expectEqual(false, t.half);
 }
@@ -114,7 +106,8 @@ pub fn match(self: *const Self, other: *const [20]u8) bool {
 }
 
 test "match" {
-    var sha = @import("gitSha.zig").init();
+    var git = try Git.init();
+    var sha = try @import("gitSha.zig").init(&git);
     const result = sha.trySha("howdy"); // { ef, 42, ba, b1, 19, 1d, a2, 72, f1, 39, 35, f7, 8c, 40, 1e, 3d, e0, c1, 1a, fb }
 
     var t = try Self._init("cafe12");

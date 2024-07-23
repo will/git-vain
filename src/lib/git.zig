@@ -4,22 +4,32 @@ const libgit = @import("libgit.zig");
 const libgit2 = libgit.libgit2;
 const wrapCall = libgit.wrapCall;
 
-repo: ?*libgit2.git_repository,
+// repo: ?*libgit2.git_repository,
+repo: *zlg.Repository,
 
 pub fn init() !Self {
-    var repo: ?*libgit2.git_repository = null;
+    // var repo: ?*libgit2.git_repository = null;
+    //
+    // if (libgit2.git_libgit2_init() < 0) return error.ErrorInitializingLibgit2;
+    // _ = libgit2.git_repository_open(&repo, ".");
 
-    if (libgit2.git_libgit2_init() < 0) return error.ErrorInitializingLibgit2;
-    _ = libgit2.git_repository_open(&repo, ".");
+    const hand = try zlg.init();
+    //   defer hand.deinit();
+    const repo = try hand.repositoryOpen(".");
+    //    defer repo.deinit();
     return Self{ .repo = repo };
 }
 
-fn getVainDefaultFromConfig(self: *const Self) libgit.GitError![]const u8 {
-    var cfg: ?*libgit2.git_config = null;
-    try wrapCall("git_repository_config_snapshot", .{ &cfg, self.repo });
-    var str: ?[*:0]const u8 = undefined;
-    try wrapCall("git_config_get_string", .{ &str, cfg, "vain.default" });
-    return std.mem.sliceTo(str.?, 0);
+// fn getVainDefaultFromConfig(self: *const Self) libgit.GitError![]const u8 {
+fn getVainDefaultFromConfig(self: *const Self) zlg.GitError![]const u8 {
+    // var cfg: ?*libgit2.git_config = null;
+    // try wrapCall("git_repository_config_snapshot", .{ &cfg, self.repo });
+    // var str: ?[*:0]const u8 = undefined;
+    // try wrapCall("git_config_get_string", .{ &str, cfg, "vain.default" });
+    // return std.mem.sliceTo(str.?, 0);
+    const snap = try self.repo.configSnapshot();
+    const ret = try snap.getString("vain.default");
+    return ret;
 }
 
 pub fn getDefault(self: *Self) []const u8 {
@@ -41,6 +51,13 @@ test "getDefault" {
 }
 
 const zlg = @import("../zlg/git.zig");
+
+pub fn currentCommit(self: *Self) !*zlg.Commit {
+    const ac = try self.repo.annotatedCommitCreateFromRevisionString("HEAD");
+    const oid = try ac.commitId();
+    const commit = try self.repo.commitLookup(oid);
+    return commit;
+}
 
 pub fn getHead(self: *const Self) !void {
     // git cat-file -p HEAD
@@ -64,34 +81,34 @@ pub fn getHead(self: *const Self) !void {
     // std.debug.print("tree {s}, {x}\n", .{ hex, tree.id });
     _ = self;
 
-    const hand = try zlg.init();
-    defer hand.deinit();
-    var repo = try hand.repositoryOpen(".");
-    defer repo.deinit();
-    //const ac = try obj.annotatedCommitCreate(repo);
-    //defer ac.deinit();
-
-    const ac = try repo.annotatedCommitCreateFromRevisionString("HEAD");
-    const oid = try ac.commitId();
-    const commit = try repo.commitLookup(oid);
-
-    const header = commit.getHeaderRaw() orelse unreachable;
-    const message = commit.getMessageRaw() orelse unreachable;
-
-    const Sha = @import("gitSha.zig");
-    var sha = Sha.init();
-
-    var buffer = [_]u8{undefined} ** 1000;
-    const content = try std.fmt.bufPrint(&buffer, "{s}\n{s}", .{ header, message });
-
-    var commitTagBuf = [_]u8{undefined} ** 50;
-    const commitTag = try std.fmt.bufPrint(&commitTagBuf, "commit {d}\x00", .{content.len});
-    // sha.hash.update("commit 240\x00");
-    sha.hash.update(commitTag);
-    sha.hash.update(content);
-    var result: [20]u8 = undefined;
-    sha.hash.final(&result);
-    std.debug.print("myhash: {x}\ntheirs: {x}", .{ result, oid.id });
+    //    const hand = try zlg.init();
+    //    //   defer hand.deinit();
+    //    var repo = try hand.repositoryOpen(".");
+    //    //    defer repo.deinit();
+    //    //const ac = try obj.annotatedCommitCreate(repo);
+    //    //defer ac.deinit();
+    //
+    //    const ac = try repo.annotatedCommitCreateFromRevisionString("HEAD");
+    //    const oid = try ac.commitId();
+    //    const commit = try repo.commitLookup(oid);
+    //
+    //    const header = commit.getHeaderRaw() orelse unreachable;
+    //    const message = commit.getMessageRaw() orelse unreachable;
+    //
+    //    const Sha = @import("gitSha.zig");
+    //    var sha = Sha.init();
+    //
+    //    var buffer = [_]u8{undefined} ** 1000;
+    //    const content = try std.fmt.bufPrint(&buffer, "{s}\n{s}", .{ header, message });
+    //
+    //    var commitTagBuf = [_]u8{undefined} ** 50;
+    //    const commitTag = try std.fmt.bufPrint(&commitTagBuf, "commit {d}\x00", .{content.len});
+    //    // sha.hash.update("commit 240\x00");
+    //    sha.hash.update(commitTag);
+    //    sha.hash.update(content);
+    //    var result: [20]u8 = undefined;
+    //    sha.hash.final(&result);
+    //    std.debug.print("myhash: {x}\ntheirs: {x}", .{ result, oid.id });
 }
 
 test "getHead" {

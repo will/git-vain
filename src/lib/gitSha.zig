@@ -1,13 +1,21 @@
 const std = @import("std");
 const Sha1 = std.crypto.hash.Sha1;
+const Git = @import("git.zig");
 
 const Self = @This();
 
 hash: Sha1 = undefined,
+startingSha: [20]u8 = undefined,
+header: *const []u8 = undefined,
+message: *const []u8 = undefined,
 
-pub fn init() Self {
+pub fn init(git: *Git) !Self {
+    const commit = try git.currentCommit();
+    const startingSha = commit.id().id;
+
     return Self{
         .hash = Sha1.init(.{}),
+        .startingSha = startingSha,
     };
 }
 
@@ -32,4 +40,8 @@ test "trySha" {
     const result2 = trySha(&sha, "def");
     try std.testing.expectEqual(result1, result2);
     try std.testing.expectEqual(original_state, sha.hash.s);
+}
+
+comptime {
+    std.testing.refAllDecls(@This());
 }
