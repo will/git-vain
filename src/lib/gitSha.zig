@@ -45,28 +45,6 @@ pub fn init(git: *Git, allocator: Allocator) !Self {
     };
 }
 
-pub fn tryOffset(self: *const Self, x: i32, y: i32) ![20]u8 {
-    const original = self.hash;
-    const hinfo = self.hinfo;
-    var dupe_hash = Sha1{ .s = original.s, .buf = original.buf, .buf_len = original.buf_len, .total_len = original.total_len };
-    var result: [20]u8 = undefined;
-    var dateBuf = [_]u8{undefined} ** 10;
-
-    var datestr = try std.fmt.bufPrint(&dateBuf, "{d}", .{hinfo.author_time + x});
-    dupe_hash.update(datestr);
-    dupe_hash.update(self.header[hinfo.author_time_start + 10 .. hinfo.committer_time_start]);
-
-    datestr = try std.fmt.bufPrint(&dateBuf, "{d}", .{hinfo.committer_time + y});
-    dupe_hash.update(datestr);
-    dupe_hash.update(self.header[hinfo.committer_time_start + 10 .. self.header.len]);
-
-    dupe_hash.update("\n");
-    dupe_hash.update(self.message);
-
-    dupe_hash.final(&result);
-    return result;
-}
-
 const HeaderInfo = struct {
     author_time_start: u64 = 0,
     author_time: i64 = 0, // using i64 to make the offset calculations easier
@@ -140,6 +118,70 @@ test "trySha" {
     const result2 = trySha(&sha, "def");
     try std.testing.expectEqual(result1, result2);
     try std.testing.expectEqual(original_state, sha.hash.s);
+}
+
+pub fn trySpiral(self: *const Self, n: i32) ![20]u8 {
+    const s = spiral(n);
+    const x = s[0];
+    const y = s[1];
+    const original = self.hash;
+    const hinfo = self.hinfo;
+    var dupe_hash = Sha1{ .s = original.s, .buf = original.buf, .buf_len = original.buf_len, .total_len = original.total_len };
+    var result: [20]u8 = undefined;
+    var dateBuf = [_]u8{undefined} ** 10;
+
+    var datestr = try std.fmt.bufPrint(&dateBuf, "{d}", .{hinfo.author_time + x});
+    dupe_hash.update(datestr);
+    dupe_hash.update(self.header[hinfo.author_time_start + 10 .. hinfo.committer_time_start]);
+
+    datestr = try std.fmt.bufPrint(&dateBuf, "{d}", .{hinfo.committer_time + y});
+    dupe_hash.update(datestr);
+    dupe_hash.update(self.header[hinfo.committer_time_start + 10 .. self.header.len]);
+
+    dupe_hash.update("\n");
+    dupe_hash.update(self.message);
+
+    dupe_hash.final(&result);
+    return result;
+}
+
+fn spiral(ni: i32) [2]i32 {
+    const n: f64 = @floatFromInt(ni);
+    // const s: i32 = @intFromFloat(@floor((@sqrt(n) + 1) / 2));
+    const s: i32 = @intFromFloat((@sqrt(n) + 1) / 2);
+    const lt = ni - (((2 * s) - 1) * ((2 * s) - 1));
+    const l = @divTrunc(lt, (2 * s));
+    const e = lt - (2 * s * l) - s + 1;
+
+    return switch (l) {
+        0 => .{ s, e },
+        1 => .{ -e, s },
+        2 => .{ -s, -e },
+        else => .{ e, -s },
+    };
+}
+
+const expectEqual = std.testing.expectEqual;
+
+test "spiral" {
+    try expectEqual(spiral(1), .{ 1, 0 });
+    try expectEqual(spiral(2), .{ 1, 1 });
+    try expectEqual(spiral(3), .{ 0, 1 });
+    try expectEqual(spiral(4), .{ -1, 1 });
+    try expectEqual(spiral(5), .{ -1, 0 });
+    try expectEqual(spiral(6), .{ -1, -1 });
+    try expectEqual(spiral(7), .{ 0, -1 });
+    try expectEqual(spiral(8), .{ 1, -1 });
+    try expectEqual(spiral(9), .{ 2, -1 });
+    try expectEqual(spiral(10), .{ 2, 0 });
+    try expectEqual(spiral(11), .{ 2, 1 });
+    try expectEqual(spiral(12), .{ 2, 2 });
+    try expectEqual(spiral(13), .{ 1, 2 });
+    try expectEqual(spiral(14), .{ 0, 2 });
+    try expectEqual(spiral(15), .{ -1, 2 });
+    try expectEqual(spiral(16), .{ -2, 2 });
+    try expectEqual(spiral(16), .{ -2, 2 });
+    try expectEqual(spiral(16), .{ -2, 2 });
 }
 
 comptime {

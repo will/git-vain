@@ -15,7 +15,7 @@ pub fn main() !void {
     const target = try Target.init(&git);
     const sha = try GitSha.init(&git, allocator);
 
-    std.debug.print("try {x}\nreal {x}\n", .{ try sha.tryOffset(0, 0), sha.startingSha });
+    std.debug.print("try {x}\nreal {x}\n", .{ try sha.trySpiral(1), sha.startingSha });
 
     if (target.match(&sha.startingSha)) {
         std.debug.print("already at target\n", .{});
@@ -24,7 +24,8 @@ pub fn main() !void {
 
     const thread_count = lib.Cpu.getPerfCores();
     for (0..thread_count) |i| {
-        const handle = try std.Thread.spawn(.{}, search, .{ i, thread_count, &sha, target });
+        const start: i32 = @intCast(i + 1);
+        const handle = try std.Thread.spawn(.{}, search, .{ start, thread_count, &sha, target });
         handle.detach();
     }
 
@@ -32,15 +33,13 @@ pub fn main() !void {
     std.debug.print("done\n", .{}); // TODO: too lazy to figure out how to flush stderr
 }
 
-fn search(start: u64, step: u8, sha: *const GitSha, target: Target) !void {
+fn search(start: i32, step: u8, sha: *const GitSha, target: Target) !void {
     var i = start;
 
     while (true) : (i += step) {
         if (GlobalFoundFlag.found) break;
 
-        var buf: [20]u8 = undefined;
-        const numAsString = try std.fmt.bufPrint(&buf, "{}", .{i});
-        const result = sha.trySha(numAsString);
+        const result = try sha.trySpiral(i);
         if (target.match(&result) and GlobalFoundFlag.setFound()) {
             std.debug.print("{d}: {x}\n", .{ i, result });
             break;
