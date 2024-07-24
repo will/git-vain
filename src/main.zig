@@ -8,9 +8,14 @@ const Git = lib.Git;
 var GlobalFoundFlag = lib.FoundFlag{};
 
 pub fn main() !void {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
+
     var git = try Git.init();
     const target = try Target.init(&git);
-    const sha = try GitSha.init(&git);
+    const sha = try GitSha.init(&git, allocator);
+
+    std.debug.print("try {x}\nreal {x}\n", .{ sha.trySha(sha.message), sha.startingSha });
 
     if (target.match(&sha.startingSha)) {
         std.debug.print("already at target\n", .{});

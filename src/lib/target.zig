@@ -1,6 +1,5 @@
 const std = @import("std");
 const Git = @import("git.zig");
-const Allocator = std.mem.Allocator;
 
 const Self = @This();
 const MaxSize = 16; // NOTE: just picking this, real hard limit would probably be 40?
@@ -106,9 +105,7 @@ pub fn match(self: *const Self, other: *const [20]u8) bool {
 }
 
 test "match" {
-    var git = try Git.init();
-    var sha = try @import("gitSha.zig").init(&git);
-    const result = sha.trySha("howdy"); // { ef, 42, ba, b1, 19, 1d, a2, 72, f1, 39, 35, f7, 8c, 40, 1e, 3d, e0, c1, 1a, fb }
+    const result: [20]u8 = .{ 0xef, 0x42, 0xba, 0xb1, 0x19, 0x1d, 0xa2, 0x72, 0xf1, 0x39, 0x35, 0xf7, 0x8c, 0x40, 0x1e, 0x3d, 0xe0, 0xc1, 0x1a, 0xfb };
 
     var t = try Self._init("cafe12");
     try std.testing.expectEqual(false, t.match(&result));
