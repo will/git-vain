@@ -31,10 +31,21 @@ pub fn init(git: *Git, allocator: Allocator) !Self {
     var commitTagBuf = [_]u8{undefined} ** 50;
     const commitTag = try std.fmt.bufPrint(&commitTagBuf, "commit {d}\x00", .{header.len + message.len + 1});
 
-    // TODO: split from head,msg into <1st part until first date> <middle part until second date> <time offset, extra newline, and message>
     hash.update(commitTag);
-    hash.update(header);
+
+    // hash.update(header);
+    const hinfo = try parseHeader(retHeader);
+    hash.update(header[0..hinfo.author_time_start]);
+    var dateBuf = [_]u8{undefined} ** 10;
+    var datestr = try std.fmt.bufPrint(&dateBuf, "{d}", .{hinfo.author_time});
+    hash.update(datestr);
+    hash.update(header[hinfo.author_time_start + 10 .. hinfo.committer_time_start]);
+    datestr = try std.fmt.bufPrint(&dateBuf, "{d}", .{hinfo.committer_time});
+    hash.update(datestr);
+    hash.update(header[hinfo.committer_time_start + 10 .. header.len]);
+
     hash.update("\n");
+
     // hash.update(message);
 
     return Self{
