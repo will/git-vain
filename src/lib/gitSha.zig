@@ -45,8 +45,7 @@ pub fn init(git: *Git, allocator: Allocator) !Self {
     };
 }
 
-// TODO negative offsets
-pub fn tryOffset(self: *const Self, x: u32, y: u32) ![20]u8 {
+pub fn tryOffset(self: *const Self, x: i32, y: i32) ![20]u8 {
     const original = self.hash;
     const hinfo = self.hinfo;
     var dupe_hash = Sha1{ .s = original.s, .buf = original.buf, .buf_len = original.buf_len, .total_len = original.total_len };
@@ -70,9 +69,9 @@ pub fn tryOffset(self: *const Self, x: u32, y: u32) ![20]u8 {
 
 const HeaderInfo = struct {
     author_time_start: u64 = 0,
-    author_time: u64 = 0,
+    author_time: i64 = 0, // using i64 to make the offset calculations easier
     committer_time_start: u64 = 0,
-    committer_time: u64 = 0,
+    committer_time: i64 = 0,
 };
 
 fn parseHeader(header: []const u8) !HeaderInfo {
@@ -82,12 +81,12 @@ fn parseHeader(header: []const u8) !HeaderInfo {
     i = advanceToProbe(i, header, "> ");
     const author_time_start = i;
     // dont have to worry about unix time adding a decimal digit until 2286-11-20
-    const author_time = try std.fmt.parseUnsigned(u64, header[i .. i + 10], 10);
+    const author_time = try std.fmt.parseUnsigned(i64, header[i .. i + 10], 10);
 
     i = advanceToProbe(i, header, "\ncommitter ");
     i = advanceToProbe(i, header, "> ");
     const committer_time_start = i;
-    const committer_time = try std.fmt.parseUnsigned(u64, header[i .. i + 10], 10);
+    const committer_time = try std.fmt.parseUnsigned(i64, header[i .. i + 10], 10);
 
     return HeaderInfo{
         .author_time_start = author_time_start,
