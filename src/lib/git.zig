@@ -59,63 +59,6 @@ pub fn currentCommit(self: *Self) !*zlg.Commit {
     return commit;
 }
 
-pub fn getHead(self: *const Self) !void {
-    // git cat-file -p HEAD
-    // https://libgit2.org/libgit2/ex/HEAD/cat-file.html
-    // https://github.com/leecannon/zig-libgit2/blob/ff3e20b1343f35d639e945795314c05ac23a9d65/src/repository.zig#L2918
-    //
-    // var commit: *libgit.Object = undefined;
-
-    // try libgit.wrapCall("git_revparse_single", .{
-    //     @as(*?*libgit2.git_object, @ptrCast(&commit)),
-    //     self.repo,
-    //     "HEAD",
-    // });
-    //
-    // TODO: use git_repository_head
-    // const gctid = libgit2.git_commit_tree_id(@ptrCast(self));
-    // const tree: *libgit.Oid = @constCast(@ptrCast(gctid));
-    //
-    // var buf: [libgit.Oid.hex_buffer_size]u8 = undefined;
-    // const hex = try tree.formatHex(&buf);
-    // std.debug.print("tree {s}, {x}\n", .{ hex, tree.id });
-    _ = self;
-
-    //    const hand = try zlg.init();
-    //    //   defer hand.deinit();
-    //    var repo = try hand.repositoryOpen(".");
-    //    //    defer repo.deinit();
-    //    //const ac = try obj.annotatedCommitCreate(repo);
-    //    //defer ac.deinit();
-    //
-    //    const ac = try repo.annotatedCommitCreateFromRevisionString("HEAD");
-    //    const oid = try ac.commitId();
-    //    const commit = try repo.commitLookup(oid);
-    //
-    //    const header = commit.getHeaderRaw() orelse unreachable;
-    //    const message = commit.getMessageRaw() orelse unreachable;
-    //
-    //    const Sha = @import("gitSha.zig");
-    //    var sha = Sha.init();
-    //
-    //    var buffer = [_]u8{undefined} ** 1000;
-    //    const content = try std.fmt.bufPrint(&buffer, "{s}\n{s}", .{ header, message });
-    //
-    //    var commitTagBuf = [_]u8{undefined} ** 50;
-    //    const commitTag = try std.fmt.bufPrint(&commitTagBuf, "commit {d}\x00", .{content.len});
-    //    // sha.hash.update("commit 240\x00");
-    //    sha.hash.update(commitTag);
-    //    sha.hash.update(content);
-    //    var result: [20]u8 = undefined;
-    //    sha.hash.final(&result);
-    //    std.debug.print("myhash: {x}\ntheirs: {x}", .{ result, oid.id });
-}
-
-test "getHead" {
-    const git = try init();
-    try git.getHead();
-}
-
 comptime {
     std.testing.refAllDecls(Self);
 }
