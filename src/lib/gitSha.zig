@@ -7,8 +7,13 @@ const Self = @This();
 
 hash: Sha1 = undefined,
 startingSha: [20]u8 = undefined,
-header: []const u8 = undefined,
-message: []const u8 = undefined,
+header: []const u8 = undefined, // TODO: remove
+message: []const u8 = undefined, // TODO remove
+header_middle: []const u8 = undefined, // offset, commitor until time
+rest_of_commit: []const u8 = undefined, // offset, extra newline, commit message
+
+// git commit format:
+//   commit <total len in decimal after nullbyte>\0<header ending in \n><extra \n><message ending in \n>
 
 pub fn init(git: *Git, allocator: Allocator) !Self {
     const commit = try git.currentCommit();
@@ -38,6 +43,58 @@ pub fn init(git: *Git, allocator: Allocator) !Self {
         .header = retHeader,
         .message = retMessage,
     };
+}
+
+const HeaderInfo = struct {
+    author_time_start: u64 = 0,
+    author_time: u64 = 0,
+    committer_time_start: u64 = 0,
+    committer_time: u64 = 0,
+};
+
+fn parseHeader(header: []const u8) !HeaderInfo {
+    var i: u64 = 0;
+
+    i = advanceToProbe(i, header, "\nauthor ");
+    i = advanceToProbe(i, header, "> ");
+    const author_time_start = i;
+    // dont have to worry about unix time adding a decimal digit until 2286-11-20
+    const author_time = try std.fmt.parseUnsigned(u64, header[i .. i + 10], 10);
+
+    i = advanceToProbe(i, header, "\ncommitter ");
+    i = advanceToProbe(i, header, "> ");
+    const committer_time_start = i;
+    const committer_time = try std.fmt.parseUnsigned(u64, header[i .. i + 10], 10);
+
+    return HeaderInfo{
+        .author_time_start = author_time_start,
+        .author_time = author_time,
+        .committer_time_start = committer_time_start,
+        .committer_time = committer_time,
+    };
+}
+
+fn advanceToProbe(start: u64, header: []const u8, probe: []const u8) u64 {
+    var i = start;
+    while (i < header.len - probe.len) : (i += 1) {
+        if (std.mem.eql(u8, header[i .. i + probe.len], probe)) break;
+    }
+    return i + probe.len;
+}
+
+test "parseHeader" {
+    const header =
+        \\tree e9054e9ccfee355e80c40ba84abb8f438f9e688b
+        \\parent 26f67e5988b15877d2807511b262c870b2492548
+        \\author Will Leinweber <my@email.com> 1721827347 +0200
+        \\committer Will Leinweber <my@email.com> 4294967999 +0200
+    ;
+
+    const info = try parseHeader(header);
+    try std.testing.expectEqual(info.author_time_start, 131);
+    try std.testing.expectEqual(info.author_time, 1721827347);
+    try std.testing.expectEqual(info.committer_time_start, 188);
+    try std.testing.expectEqual(info.committer_time, 4294967999);
 }
 
 pub fn trySha(self: *const Self, str: []const u8) [20]u8 {
