@@ -7,10 +7,9 @@ const Self = @This();
 
 hash: Sha1 = undefined,
 startingSha: [20]u8 = undefined,
-header: []const u8 = undefined, // TODO: remove
-message: []const u8 = undefined, // TODO remove
-header_middle: []const u8 = undefined, // offset, commitor until time
-rest_of_commit: []const u8 = undefined, // offset, extra newline, commit message
+header: []const u8 = undefined,
+message: []const u8 = undefined,
+hinfo: HeaderInfo = undefined,
 
 // git commit format:
 //   commit <total len in decimal after nullbyte>\0<header ending in \n><extra \n><message ending in \n>
@@ -24,6 +23,7 @@ pub fn init(git: *Git, allocator: Allocator) !Self {
 
     const retHeader = try allocator.alloc(u8, header.len);
     std.mem.copyForwards(u8, retHeader, header);
+
     const retMessage = try allocator.alloc(u8, message.len);
     std.mem.copyForwards(u8, retMessage, message);
 
@@ -33,27 +33,39 @@ pub fn init(git: *Git, allocator: Allocator) !Self {
 
     hash.update(commitTag);
 
-    // hash.update(header);
-    const hinfo = try parseHeader(retHeader);
+    const hinfo = try parseHeader(header);
     hash.update(header[0..hinfo.author_time_start]);
-    var dateBuf = [_]u8{undefined} ** 10;
-    var datestr = try std.fmt.bufPrint(&dateBuf, "{d}", .{hinfo.author_time});
-    hash.update(datestr);
-    hash.update(header[hinfo.author_time_start + 10 .. hinfo.committer_time_start]);
-    datestr = try std.fmt.bufPrint(&dateBuf, "{d}", .{hinfo.committer_time});
-    hash.update(datestr);
-    hash.update(header[hinfo.committer_time_start + 10 .. header.len]);
-
-    hash.update("\n");
-
-    // hash.update(message);
 
     return Self{
         .hash = hash,
         .startingSha = startingSha,
-        .header = retHeader,
         .message = retMessage,
+        .header = retHeader,
+        .hinfo = hinfo,
     };
+}
+
+// TODO negative offsets
+pub fn tryOffset(self: *const Self, x: u32, y: u32) ![20]u8 {
+    const original = self.hash;
+    const hinfo = self.hinfo;
+    var dupe_hash = Sha1{ .s = original.s, .buf = original.buf, .buf_len = original.buf_len, .total_len = original.total_len };
+    var result: [20]u8 = undefined;
+    var dateBuf = [_]u8{undefined} ** 10;
+
+    var datestr = try std.fmt.bufPrint(&dateBuf, "{d}", .{hinfo.author_time + x});
+    dupe_hash.update(datestr);
+    dupe_hash.update(self.header[hinfo.author_time_start + 10 .. hinfo.committer_time_start]);
+
+    datestr = try std.fmt.bufPrint(&dateBuf, "{d}", .{hinfo.committer_time + y});
+    dupe_hash.update(datestr);
+    dupe_hash.update(self.header[hinfo.committer_time_start + 10 .. self.header.len]);
+
+    dupe_hash.update("\n");
+    dupe_hash.update(self.message);
+
+    dupe_hash.final(&result);
+    return result;
 }
 
 const HeaderInfo = struct {

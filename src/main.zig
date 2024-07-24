@@ -15,7 +15,7 @@ pub fn main() !void {
     const target = try Target.init(&git);
     const sha = try GitSha.init(&git, allocator);
 
-    std.debug.print("try {x}\nreal {x}\n", .{ sha.trySha(sha.message), sha.startingSha });
+    std.debug.print("try {x}\nreal {x}\n", .{ try sha.tryOffset(0, 0), sha.startingSha });
 
     if (target.match(&sha.startingSha)) {
         std.debug.print("already at target\n", .{});
