@@ -15,10 +15,10 @@ pub fn main() !void {
     const target = try Target.init(&git);
     const sha = try GitSha.init(&git, allocator);
 
-    std.debug.print("try {x}\nreal {x}\n", .{ try sha.trySpiral(1), sha.startingSha });
+    // std.debug.print("spiral match test -- try {x}\nreal {x}\n", .{ try sha.trySpiral(1), sha.startingSha });
 
     if (target.match(&sha.startingSha)) {
-        std.debug.print("already at target\n", .{});
+        std.log.debug("already at target: {x}", .{sha.startingSha});
         std.process.exit(0);
     }
 
@@ -30,7 +30,6 @@ pub fn main() !void {
     }
 
     GlobalFoundFlag.wait();
-    std.debug.print("done\n", .{}); // TODO: too lazy to figure out how to flush stderr
 }
 
 fn search(start: i32, step: u8, sha: *const GitSha, target: Target) !void {
@@ -41,7 +40,7 @@ fn search(start: i32, step: u8, sha: *const GitSha, target: Target) !void {
 
         const result = try sha.trySpiral(i);
         if (target.match(&result) and GlobalFoundFlag.setFound()) {
-            std.debug.print("{d}: {x}\n", .{ i, result });
+            std.log.debug("{d}: {x}\n", .{ i, result });
             break;
         }
     }

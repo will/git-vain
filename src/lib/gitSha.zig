@@ -95,6 +95,20 @@ test "parseHeader" {
     try std.testing.expectEqual(info.author_time, 1721827347);
     try std.testing.expectEqual(info.committer_time_start, 188);
     try std.testing.expectEqual(info.committer_time, 4294967999);
+
+    const header2 =
+        \\tree e9054e9ccfee355e80c40ba84abb8f438f9e688b
+        \\parent 26f67e5988b15877d2807511b262c870b2492548
+        \\parent 37f67e5988b15877d2807511b262c870b2492548
+        \\author Will Leinweber <my@email.com> 1721827347 +0200
+        \\committer Will Leinweber <my@email.com> 4294967999 +0200
+    ;
+
+    const info2 = try parseHeader(header2);
+    try std.testing.expectEqual(info2.author_time_start, 179);
+    try std.testing.expectEqual(info2.author_time, 1721827347);
+    try std.testing.expectEqual(info2.committer_time_start, 236);
+    try std.testing.expectEqual(info2.committer_time, 4294967999);
 }
 
 pub fn trySha(self: *const Self, str: []const u8) [20]u8 {
