@@ -164,7 +164,6 @@ pub fn trySpiral(self: *const Self, n: i32) ![20]u8 {
 fn spiral(ni: i32) [2]i32 {
     std.debug.assert(ni > 0);
     const n: f64 = @floatFromInt(ni);
-    // const s: i32 = @intFromFloat(@floor((@sqrt(n) + 1) / 2));
     const s: i32 = @intFromFloat((@sqrt(n) + 1) / 2);
     const lt = ni - (((2 * s) - 1) * ((2 * s) - 1));
     const l = @divTrunc(lt, (2 * s));

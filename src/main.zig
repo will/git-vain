@@ -15,8 +15,6 @@ pub fn main() !void {
     const target = try Target.init(&git);
     const sha = try GitSha.init(&git, allocator);
 
-    // std.debug.print("spiral match test -- try {x}\nreal {x}\n", .{ try sha.trySpiral(1), sha.startingSha });
-
     if (target.match(&sha.startingSha)) {
         std.log.debug("already at target: {x}", .{sha.startingSha});
         std.process.exit(0);
