@@ -10,6 +10,7 @@ startingSha: [20]u8 = undefined,
 header: []const u8 = undefined,
 message: []const u8 = undefined,
 hinfo: HeaderInfo = undefined,
+git: *Git = undefined,
 
 // git commit format:
 //   commit <total len in decimal after nullbyte>\0<header ending in \n><extra \n><message ending in \n>
@@ -37,6 +38,7 @@ pub fn init(git: *Git, allocator: Allocator) !Self {
     hash.update(header[0..hinfo.author_time_start]);
 
     return Self{
+        .git = git,
         .hash = hash,
         .startingSha = startingSha,
         .message = retMessage,
@@ -197,6 +199,18 @@ test "spiral" {
     try expectEqual(spiral(16), .{ -2, 2 });
     try expectEqual(spiral(16), .{ -2, 2 });
     try expectEqual(spiral(16), .{ -2, 2 });
+}
+
+pub fn ammend(self: *const Self, i: i32) !void {
+    const commit = try self.git.currentCommit();
+    const author = try commit.getAuthor().duplicate();
+    const committer = try commit.getCommitter().duplicate();
+    const offsets = spiral(i);
+
+    author.when.time += offsets[0];
+    committer.when.time += offsets[1];
+
+    _ = try commit.amend("HEAD", author, committer, null, null, null);
 }
 
 comptime {

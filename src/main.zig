@@ -30,6 +30,7 @@ pub fn main() !void {
     }
 
     GlobalFoundFlag.wait();
+    try sha.ammend(GlobalFoundFlag.value);
 }
 
 fn search(start: i32, step: u8, sha: *const GitSha, target: Target) !void {
@@ -39,10 +40,7 @@ fn search(start: i32, step: u8, sha: *const GitSha, target: Target) !void {
         if (GlobalFoundFlag.found) break;
 
         const result = try sha.trySpiral(i);
-        if (target.match(&result) and GlobalFoundFlag.setFound()) {
-            std.log.debug("{d}: {x}\n", .{ i, result });
-            break;
-        }
+        if (target.match(&result) and GlobalFoundFlag.setFound(i)) break;
     }
 }
 

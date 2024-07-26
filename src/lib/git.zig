@@ -15,7 +15,7 @@ pub fn init() !Self {
 
     const hand = try zlg.init();
     //   defer hand.deinit();
-    const repo = try hand.repositoryOpen(".");
+    const repo = try hand.repositoryOpen("/tmp/repo/");
     //    defer repo.deinit();
     return Self{ .repo = repo };
 }
