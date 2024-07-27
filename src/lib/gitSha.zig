@@ -143,22 +143,32 @@ pub fn trySpiral(self: *const Self, n: i32) ![20]u8 {
     const original = self.hash;
     const hinfo = self.hinfo;
     var dupe_hash = Sha1{ .s = original.s, .buf = original.buf, .buf_len = original.buf_len, .total_len = original.total_len };
-    var result: [20]u8 = undefined;
     var dateBuf = [_]u8{undefined} ** 10;
 
-    var datestr = try std.fmt.bufPrint(&dateBuf, "{d}", .{hinfo.author_time + x});
-    dupe_hash.update(datestr);
+    mytoa(hinfo.author_time + x, &dateBuf);
+    dupe_hash.update(&dateBuf);
     dupe_hash.update(self.header[hinfo.author_time_start + 10 .. hinfo.committer_time_start]);
 
-    datestr = try std.fmt.bufPrint(&dateBuf, "{d}", .{hinfo.committer_time + y});
-    dupe_hash.update(datestr);
+    mytoa(hinfo.committer_time + y, &dateBuf);
+    dupe_hash.update(&dateBuf);
     dupe_hash.update(self.header[hinfo.committer_time_start + 10 .. self.header.len]);
 
     dupe_hash.update("\n");
     dupe_hash.update(self.message);
 
+    var result: [20]u8 = undefined;
     dupe_hash.final(&result);
     return result;
+}
+
+inline fn mytoa(time: i64, dateBuf: *[10]u8) void {
+    const powers: [10]u32 = .{ 1_000_000_000, 100_000_000, 10_000_000, 1_000_000, 100_000, 10_000, 1_000, 100, 10, 1 };
+    var new_time = time;
+    inline for (0..10) |i| {
+        const digit = @divTrunc(new_time, powers[i]);
+        dateBuf[i] = @intCast('0' + digit);
+        new_time = new_time - (digit * powers[i]);
+    }
 }
 
 fn spiral(ni: i32) [2]i32 {
