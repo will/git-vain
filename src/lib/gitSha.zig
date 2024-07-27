@@ -219,7 +219,7 @@ pub fn ammend(self: *const Self, i: i32) !void {
     author.when.time += offsets[0];
     committer.when.time += offsets[1];
 
-    _ = try commit.amend("HEAD", author, committer, null, null, null);
+    // FIXME:  _ = try commit.amend("HEAD", author, committer, null, null, null);
 }
 
 comptime {
