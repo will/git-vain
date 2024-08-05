@@ -37,7 +37,7 @@ pub fn init(git: *Git, allocator: Allocator) !Self {
     const hinfo = try parseHeader(header);
     hash.update(header[0..hinfo.author_time_start]);
 
-    return Self{
+    return .{
         .git = git,
         .hash = hash,
         .startingSha = startingSha,

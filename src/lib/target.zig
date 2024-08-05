@@ -50,7 +50,7 @@ pub fn _init(str: []const u8) TargetError!Self {
         buf[i] = val;
     }
 
-    return Self{ .buf = buf, .buf_len = i, .half = half };
+    return .{ .buf = buf, .buf_len = i, .half = half };
 }
 
 fn hexChrToInt(chr: u8) TargetError!u8 {

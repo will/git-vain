@@ -7,7 +7,7 @@ repo: *zlg.Repository,
 pub fn init() !Self {
     const hand = try zlg.init();
     const repo = try hand.repositoryOpen(".");
-    return Self{ .repo = repo };
+    return .{ .repo = repo };
 }
 
 fn getVainDefaultFromConfig(self: *const Self) zlg.GitError![]const u8 {
