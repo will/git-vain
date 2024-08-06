@@ -135,6 +135,18 @@ test "match" {
     try std.testing.expectEqual(false, t.match(&result));
 }
 
+pub fn format(
+    self: *const Self,
+    comptime fmt: []const u8,
+    options: std.fmt.FormatOptions,
+    writer: anytype,
+) !void {
+    _ = fmt;
+    _ = options;
+
+    for (0..self.buf_len) |i| try writer.print("{x}", .{self.buf[i]});
+}
+
 comptime {
     std.testing.refAllDecls(Self);
 }

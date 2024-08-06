@@ -32,7 +32,7 @@ pub fn main() !void {
     }
 
     {
-        const handle = try std.Thread.spawn(.{}, display, .{&counts});
+        const handle = try std.Thread.spawn(.{}, display, .{ &counts, target });
         handle.detach();
     }
 
@@ -44,14 +44,14 @@ pub fn main() !void {
     std.debug.print("\n", .{});
 }
 
-fn display(counts: *[]i32) void {
+fn display(counts: *[]i32, target: Target) void {
     var last: u64 = 0;
     while (!GlobalFoundFlag.found) {
         var sum: u64 = 0;
         for (counts.*) |c| sum += @intCast(c);
         const diff: f64 = @floatFromInt(sum - last);
         const mhash: f64 = diff / 1_000_000;
-        std.debug.print("khash: {d}, {d:.1} Mh/s\r", .{ sum / 1000, mhash });
+        std.debug.print("{any}: {d}khash, {d:.1} Mh/s\r", .{ target, sum / 1000, mhash });
         last = sum;
         std.time.sleep(std.time.ns_per_s);
     }
