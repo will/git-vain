@@ -1,0 +1,4 @@
+#!/bin/sh
+
+sample git-vain -mayDie -file /dev/stdout | ./tools/stackcollapse-sample.awk > flame.prof
+open "https://www.speedscope.app"
