@@ -2,7 +2,7 @@ const std = @import("std");
 const Git = @import("git.zig");
 
 const Self = @This();
-const MaxSize = 16; // NOTE: just picking this, real hard limit would probably be 40?
+const MaxSize = 40;
 buf: [20]u8 = undefined,
 buf_len: u8 = 0,
 half: bool = false,
@@ -85,7 +85,7 @@ test "_init" {
 
     try std.testing.expectError(TargetError.NotHexChr, Self._init("great"));
     try std.testing.expectError(TargetError.NoInput, Self._init(""));
-    try std.testing.expectError(TargetError.TooLong, Self._init("12345678901234567"));
+    try std.testing.expectError(TargetError.TooLong, Self._init("123345" ** 9));
 }
 
 pub fn match(self: *const Self, other: *const [20]u8) bool {
