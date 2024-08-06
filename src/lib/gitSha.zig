@@ -2,6 +2,7 @@ const std = @import("std");
 const Sha1 = std.crypto.hash.Sha1;
 const Git = @import("git.zig");
 const Allocator = std.mem.Allocator;
+const zlg = @import("../zlg/git.zig");
 
 const Self = @This();
 
@@ -210,7 +211,7 @@ test "spiral" {
     try expectEqual(spiral(16), .{ -2, 2 });
 }
 
-pub fn ammend(self: *const Self, i: i32) !void {
+pub fn amend(self: *const Self, i: i32) !zlg.Oid {
     const commit = try self.git.currentCommit();
     const author = try commit.getAuthor().duplicate();
     const committer = try commit.getCommitter().duplicate();
@@ -219,7 +220,7 @@ pub fn ammend(self: *const Self, i: i32) !void {
     author.when.time += offsets[0];
     committer.when.time += offsets[1];
 
-    // FIXME:  _ = try commit.amend("HEAD", author, committer, null, null, null);
+    return try commit.amend("HEAD", author, committer, null, null, null);
 }
 
 comptime {

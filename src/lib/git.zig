@@ -1,4 +1,5 @@
 const Self = @This();
+const zlg = @import("../zlg/git.zig");
 const std = @import("std");
 
 // repo: ?*libgit2.git_repository,
@@ -6,7 +7,7 @@ repo: *zlg.Repository,
 
 pub fn init() !Self {
     const hand = try zlg.init();
-    const repo = try hand.repositoryOpen(".");
+    const repo = try hand.repositoryOpen("/tmp/repo");
     return .{ .repo = repo };
 }
 
@@ -32,8 +33,6 @@ test "getDefault" {
     const d = git.getDefault();
     try std.testing.expect(d[0] != 0);
 }
-
-const zlg = @import("../zlg/git.zig");
 
 pub fn currentCommit(self: *Self) !*zlg.Commit {
     const ac = try self.repo.annotatedCommitCreateFromRevisionString("HEAD");

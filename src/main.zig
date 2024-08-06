@@ -16,7 +16,9 @@ pub fn main() !void {
     const sha = try GitSha.init(&git, allocator);
 
     if (target.match(&sha.startingSha)) {
-        std.log.debug("already at target: {x}", .{sha.startingSha});
+        std.debug.print("already at target: ", .{});
+        for (sha.startingSha) |c| std.debug.print("{x}", .{c});
+        std.debug.print("\n", .{});
         std.process.exit(0);
     }
 
@@ -29,13 +31,17 @@ pub fn main() !void {
         handle.detach();
     }
 
-    const handle = try std.Thread.spawn(.{}, display, .{&counts});
-    handle.detach();
+    {
+        const handle = try std.Thread.spawn(.{}, display, .{&counts});
+        handle.detach();
+    }
 
     GlobalFoundFlag.wait();
-    std.debug.print("found: {d}, stuff: {d}\n", .{ GlobalFoundFlag.value, counts });
+    std.debug.print("found: {d}, ", .{GlobalFoundFlag.value});
 
-    try sha.ammend(GlobalFoundFlag.value);
+    const oid = try sha.amend(GlobalFoundFlag.value);
+    for (oid.id) |c| std.debug.print("{x}", .{c});
+    std.debug.print("\n", .{});
 }
 
 fn display(counts: *[]i32) void {
@@ -43,7 +49,9 @@ fn display(counts: *[]i32) void {
     while (!GlobalFoundFlag.found) {
         var sum: u64 = 0;
         for (counts.*) |c| sum += @intCast(c);
-        std.debug.print("total: {d}, {d}k hash/sec\n", .{ sum, (sum - last) / 1_000 });
+        const diff: f64 = @floatFromInt(sum - last);
+        const mhash: f64 = diff / 1_000_000;
+        std.debug.print("khash: {d}, {d:.1} Mh/s\r", .{ sum / 1000, mhash });
         last = sum;
         std.time.sleep(std.time.ns_per_s);
     }
