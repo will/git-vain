@@ -7,7 +7,7 @@ repo: *zlg.Repository,
 
 pub fn init() !Self {
     const hand = try zlg.init();
-    const repo = try hand.repositoryOpen("/tmp/repo");
+    const repo = try hand.repositoryOpen(".");
     return .{ .repo = repo };
 }
 
