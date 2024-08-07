@@ -49,8 +49,7 @@ fn display(counts: *[]i32, target: Target) void {
     while (!GlobalFoundFlag.found) {
         var sum: u64 = 0;
         for (counts.*) |c| sum += @intCast(c);
-        const diff: f64 = @floatFromInt(sum - last);
-        const mhash: f64 = diff / 1_000_000;
+        const mhash = @as(f64, @floatFromInt(sum - last)) / 1_000_000;
         std.debug.print("{any}: {d}khash, {d:.1} Mh/s\r", .{ target, sum / 1000, mhash });
         last = sum;
         std.time.sleep(std.time.ns_per_s);
