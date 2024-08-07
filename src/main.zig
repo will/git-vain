@@ -17,8 +17,7 @@ pub fn main() !void {
 
     if (target.match(&sha.startingSha)) {
         std.debug.print("already at target: ", .{});
-        for (sha.startingSha) |c| std.debug.print("{x}", .{c});
-        std.debug.print("\n", .{});
+        printSha(sha.startingSha, target.buf_len);
         std.process.exit(0);
     }
 
@@ -40,7 +39,15 @@ pub fn main() !void {
     std.debug.print("found: {d}, ", .{GlobalFoundFlag.value});
 
     const oid = try sha.amend(GlobalFoundFlag.value);
-    for (oid.id) |c| std.debug.print("{x}", .{c});
+    printSha(oid.id, target.buf_len);
+}
+
+fn printSha(sha: [20]u8, bold_len: u8) void {
+    // TODO: hilight odd search targets properly
+    std.debug.print("\x1b[1;4m", .{});
+    for (sha[0..bold_len]) |c| std.debug.print("{x}", .{c});
+    std.debug.print("\x1b[0m", .{});
+    for (sha[bold_len..]) |c| std.debug.print("{x}", .{c});
     std.debug.print("\n", .{});
 }
 
